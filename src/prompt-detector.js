@@ -1,11 +1,23 @@
 const DEFAULT_PROMPT_PATTERNS = [
   {
     name: 'yes_no',
-    regex: /(\[[YyNn]\/[YyNn]\]|\([Yy]es\/[Nn]o\)|\([Yy]\/[Nn]\)|\[[Yy]\/[Nn]\])/i
+    regex: /(\[[YyNn]\/[YyNn]\]|\[[Yy]\]|\([Yy](?:\/[Nn])?\)|\([Yy]es\/[Nn]o\)|\([Yy]\/[Nn]\)|\(yes\/no(?:\/\[[^\)]*\])?\))/i
+  },
+  {
+    name: 'terraform_approval',
+    regex: /\b(terraform will perform the actions|only ['"]?yes['"]? will be accepted to approve|enter a value:)/i
+  },
+  {
+    name: 'password_prompt',
+    regex: /\b(?:enter\s+)?(?:password|passphrase)\b.{0,60}:/i
+  },
+  {
+    name: 'selection_prompt',
+    regex: /\b(select|choose|pick)\b.{0,80}(\(use arrow keys\)|:|\?|option|number)/i
   },
   {
     name: 'english_confirmation',
-    regex: /\b(do you want to|would you like to|are you sure|continue\?|proceed\?|confirm\?|press enter|enter password|password:|passphrase:)\b/i
+    regex: /\b(do you want to|would you like to|are you sure|ok to proceed|press enter)\b|\b(continue|proceed|confirm)\?/i
   },
   {
     name: 'chinese_confirmation',

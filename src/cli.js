@@ -840,7 +840,7 @@ Run options:
   --alert                         Show a stronger macOS alert popup
   --no-alert                      Disable alert popup
   --shell                         Run the command through the user's shell
-  --no-prompt                     Disable waiting-confirmation detection
+  --no-prompt                     Disable waiting-input detection
   --no-desktop                    Disable desktop notification
   --no-webhook                    Disable webhook push
   --bell                          Also ring the terminal bell

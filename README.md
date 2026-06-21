@@ -9,7 +9,7 @@
 | 场景 | 能力 |
 | --- | --- |
 | 普通命令结束或失败 | 安装后照常运行命令，shell hook 自动提醒 |
-| 命令卡在确认/输入 | 用 `tw <command>` 或 `twn run -- <command>` 读取输出并提醒 |
+| [命令卡在确认/输入](#等待输入检测-demo) | 用 `tw <command>` 或 `twn run -- <command>` 读取输出并提醒 |
 | AI CLI 一轮任务结束 | 自动安装 Codex / Qwen Code / Gemini CLI / Claude Code / Qoder CLI hook |
 | 系统通知不明显 | 支持声音、终端铃声、macOS alert 强弹窗、webhook |
 
@@ -42,6 +42,30 @@
 - 需要“等待确认/输入时提醒”：需要通过 `twn run -- <command>` 或 hook 提供的短命令 `tw <command>` 执行。原因是工具必须读取命令输出，才能判断是不是出现了 `Are you sure?`、`[y/N]`、`请输入` 这类提示。
 
 推荐用法是：自动安装的 hook 负责所有顶层命令的完成提醒；遇到可能卡在确认输入的命令时，用 `tw` 执行。
+
+## 等待输入检测 demo
+
+很多通知工具只会在命令结束时提醒，但真实的等待经常发生在命令还没结束的时候，例如 `terraform apply` 等你输入 `yes`、`npm create` 问你是否安装包、`ssh` 问你是否信任 host key。
+
+可以用内置 demo 直接试：
+
+```bash
+twn run --title "Confirm demo" --prompt-throttle-seconds 10 -- node examples/wait-for-confirm.js
+```
+
+当输出出现 `Deploy to production? [y/N]` 时，通知文案会包含 detector 名称和截断后的 sample，例如 `yes_no` 和触发检测的提示片段。常见 detector 包括 `yes_no`、`terraform_approval`、`password_prompt`、`selection_prompt`、`english_confirmation`、`chinese_confirmation`。
+
+这项能力只读取命令输出，不读取隐藏输入，也不会自动替你回答。检测可能误报时，可以单次关闭：
+
+```bash
+twn run --no-prompt -- terraform apply
+```
+
+或者全局关闭：
+
+```bash
+TWN_PROMPT_DETECTION=0 twn run -- npm install
+```
 
 ## 安装
 
@@ -132,7 +156,7 @@ twn run -- terraform apply
 twn run --shell -- "npm test && npm run build"
 ```
 
-如果命令输出里出现 `Do you want to continue? [y/N]`、`Are you sure?`、`是否继续？`、`请输入` 这类提示，`twn` 会发送一次“可能正在等待确认”的提醒。命令结束后，会按退出码发送成功或失败提醒。
+如果命令输出里出现 `Do you want to continue? [y/N]`、`Are you sure?`、`是否继续？`、`请输入`、`password:`、`Select an option:` 这类提示，`twn` 会发送一次“可能正在等待输入”的提醒，并在文案里带上 detector 名称和截断 sample。命令结束后，会按退出码发送成功或失败提醒。
 
 安装 shell hook 后，也可以用短写法：
 
@@ -398,6 +422,7 @@ twn install-ai-hooks
 twn run --title "Deploy" --label "production deploy" -- npm run deploy
 twn run --min-seconds 10 -- npm test
 twn run --prompt-throttle-seconds 120 -- terraform apply
+twn run --no-prompt -- npm install
 twn notify "手动提醒测试"
 ```
 
@@ -415,8 +440,8 @@ twn notify "手动提醒测试"
 | `TWN_ALERT=1` | macOS 上额外显示更明显的 alert 弹窗 |
 | `TWN_ALERT_TIMEOUT_SECONDS` | alert 自动关闭秒数，默认 10 |
 | `TWN_MIN_SECONDS` | 完成提醒最短耗时阈值 |
-| `TWN_PROMPT_DETECTION=0` | 关闭确认等待检测 |
-| `TWN_PROMPT_THROTTLE_SECONDS` | 确认提醒节流时间，默认 60 |
+| `TWN_PROMPT_DETECTION=0` | 关闭等待输入检测，等价于默认带 `--no-prompt` |
+| `TWN_PROMPT_THROTTLE_SECONDS` | 等待输入提醒节流时间，默认 60，避免同一个卡住命令反复打扰 |
 | `TWN_SKIP_AUTO_HOOK=1` | 安装时跳过自动写入 shell hook |
 | `TWN_AUTO_INSTALL_HOOK=1` | 即使不是全局安装，也尝试自动写入 shell hook |
 | `TWN_AUTO_HOOK_MIN_SECONDS` | 安装时写入 hook 的完成提醒阈值，默认 0 |

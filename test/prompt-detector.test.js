@@ -1,6 +1,10 @@
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const test = require('node:test');
 const { PromptDetector, detectPrompt, stripAnsi } = require('../src/prompt-detector');
+
+const fixturePath = path.join(__dirname, 'fixtures', 'prompt-detector', 'cases.json');
 
 test('detects yes/no prompts', () => {
   const result = detectPrompt('Do you want to continue? [y/N]');
@@ -29,4 +33,15 @@ test('strips ANSI escape sequences before matching', () => {
   const result = detectPrompt('\u001b[33mAre you sure?\u001b[0m');
   assert.equal(result.detected, true);
   assert.equal(stripAnsi('\u001b[31mred\u001b[0m'), 'red');
+});
+
+test('detects prompt fixtures from common terminal tools', () => {
+  const cases = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
+
+  for (const item of cases) {
+    const result = detectPrompt(item.output);
+    assert.equal(result.detected, true, item.name);
+    assert.equal(result.name, item.detector, item.name);
+    assert.ok(result.sample.length <= 260, item.name);
+  }
 });

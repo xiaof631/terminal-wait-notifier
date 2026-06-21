@@ -64,7 +64,7 @@ async function runCommand(commandArgs, rawOptions = {}) {
       event: 'waiting_confirmation',
       level: 'waiting',
       title: `${options.title} needs input`,
-      message: `${labelFor(options, commandText)} may be waiting for confirmation: ${detection.sample}`,
+      message: formatPromptNotificationMessage(labelFor(options, commandText), detection),
       command: commandText,
       status: 'waiting',
       durationMs: now - startedAt,
@@ -156,11 +156,18 @@ function formatDuration(ms) {
   return minuteRest ? `${hours}h ${minuteRest}m` : `${hours}h`;
 }
 
+function formatPromptNotificationMessage(label, detection = {}) {
+  const detector = detection.name || 'prompt';
+  const sample = detection.sample ? `: ${detection.sample}` : '';
+  return `${label} may be waiting for input (${detector})${sample}`;
+}
+
 module.exports = {
   runCommand,
   spawnCommand,
   formatCommand,
   shellQuote,
   formatDuration,
+  formatPromptNotificationMessage,
   signalToExitCode
 };

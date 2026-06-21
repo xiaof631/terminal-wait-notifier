@@ -1,0 +1,37 @@
+[
+  {
+    "name": "english yes/no confirmation",
+    "detector": "yes_no",
+    "output": "Do you want to continue? [y/N]"
+  },
+  {
+    "name": "chinese confirmation",
+    "detector": "chinese_confirmation",
+    "output": "是否继续执行？"
+  },
+  {
+    "name": "password prompt",
+    "detector": "password_prompt",
+    "output": "user@example.com's password:"
+  },
+  {
+    "name": "selection prompt",
+    "detector": "selection_prompt",
+    "output": "? Select an account: (Use arrow keys)"
+  },
+  {
+    "name": "terraform apply approval",
+    "detector": "terraform_approval",
+    "output": "Terraform will perform the actions described above. Only 'yes' will be accepted to approve."
+  },
+  {
+    "name": "npm package install confirmation",
+    "detector": "yes_no",
+    "output": "Need to install the following packages:\\n  create-vite@latest\\nOk to proceed? (y)"
+  },
+  {
+    "name": "ssh host key confirmation",
+    "detector": "yes_no",
+    "output": "Are you sure you want to continue connecting (yes/no/[fingerprint])?"
+  }
+]
