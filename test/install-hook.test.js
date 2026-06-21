@@ -34,6 +34,7 @@ test('renders a managed fish hook block', () => {
 });
 
 test('renders hook command flags', () => {
+  assert.equal(renderHookCommand('bash', {}), 'twn hook bash --min-seconds 0');
   assert.equal(
     renderHookCommand('bash', { minSeconds: 7, desktop: false, webhook: false }),
     'twn hook bash --min-seconds 7 --no-desktop --no-webhook'

@@ -2,8 +2,24 @@ const { runCommand } = require('./run-command');
 const { sendNotification } = require('./notify');
 const { renderShellHook } = require('./shell-hook');
 const { installShellHook, uninstallShellHook } = require('./install-hook');
+const { notifyCodexHook } = require('./codex-notify');
+const { installCodexHook } = require('./codex-install-hook');
+const { notifyAiCliHook } = require('./ai-hook-notify');
+const { installAiCliHooks, DEFAULT_AI_CLIS } = require('./ai-cli-integrations');
 
-const BUILTIN_COMMANDS = new Set(['run', 'notify', 'hook', 'install-hook', 'uninstall-hook', 'help', 'version']);
+const BUILTIN_COMMANDS = new Set([
+  'run',
+  'notify',
+  'hook',
+  'install-hook',
+  'uninstall-hook',
+  'codex-hook',
+  'install-codex-hook',
+  'ai-hook',
+  'install-ai-hooks',
+  'help',
+  'version'
+]);
 
 async function main(argv) {
   const args = Array.from(argv);
@@ -62,6 +78,42 @@ async function main(argv) {
     const { shell, options } = parseHookInstallArgs(args, { uninstall: true });
     const result = uninstallShellHook(shell, options);
     printHookUninstallResult(result);
+    return;
+  }
+
+  if (command === 'codex-hook') {
+    const options = parseCodexHookArgs(args);
+    await notifyCodexHook({
+      title: options.title,
+      message: options.message,
+      notifyOptions: options
+    });
+    return;
+  }
+
+  if (command === 'install-codex-hook') {
+    const options = parseCodexHookInstallArgs(args);
+    const result = await installCodexHook(options);
+    printCodexHookInstallResult(result);
+    return;
+  }
+
+  if (command === 'ai-hook') {
+    const options = parseAiHookArgs(args);
+    await notifyAiCliHook({
+      cli: options.cli,
+      title: options.title,
+      message: options.message,
+      notifyOptions: options
+    });
+    process.stdout.write('{}\n');
+    return;
+  }
+
+  if (command === 'install-ai-hooks') {
+    const options = parseAiHooksInstallArgs(args);
+    const results = await installAiCliHooks(options);
+    printAiHooksInstallResults(results);
     return;
   }
 
@@ -254,6 +306,138 @@ function parseHookInstallArgs(args, mode = {}) {
   return { shell, options };
 }
 
+function parseCodexHookArgs(args) {
+  const options = {};
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    switch (arg) {
+      case '--title':
+        options.title = requireValue(args, ++index, arg);
+        break;
+      case '--message':
+        options.message = requireValue(args, ++index, arg);
+        break;
+      case '--webhook-url':
+        options.webhookUrl = requireValue(args, ++index, arg);
+        break;
+      case '--no-desktop':
+        options.desktop = false;
+        break;
+      case '--no-webhook':
+        options.webhook = false;
+        break;
+      case '--bell':
+        options.bell = true;
+        break;
+      default:
+        throw usageError(`Unknown codex-hook option: ${arg}`);
+    }
+  }
+
+  return options;
+}
+
+function parseCodexHookInstallArgs(args) {
+  const options = {};
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    switch (arg) {
+      case '--codex':
+        options.codexCommand = requireValue(args, ++index, arg);
+        break;
+      case '--command':
+        options.hookCommand = requireValue(args, ++index, arg);
+        break;
+      case '--timeout':
+        options.timeout = parseNumber(requireValue(args, ++index, arg), arg);
+        break;
+      case '--status-message':
+        options.statusMessage = requireValue(args, ++index, arg);
+        break;
+      case '--dry-run':
+        options.dryRun = true;
+        break;
+      default:
+        throw usageError(`Unknown install-codex-hook option: ${arg}`);
+    }
+  }
+
+  return options;
+}
+
+function parseAiHookArgs(args) {
+  const options = {};
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    switch (arg) {
+      case '--cli':
+        options.cli = requireValue(args, ++index, arg);
+        break;
+      case '--title':
+        options.title = requireValue(args, ++index, arg);
+        break;
+      case '--message':
+        options.message = requireValue(args, ++index, arg);
+        break;
+      case '--webhook-url':
+        options.webhookUrl = requireValue(args, ++index, arg);
+        break;
+      case '--no-desktop':
+        options.desktop = false;
+        break;
+      case '--no-webhook':
+        options.webhook = false;
+        break;
+      case '--bell':
+        options.bell = true;
+        break;
+      default:
+        throw usageError(`Unknown ai-hook option: ${arg}`);
+    }
+  }
+
+  if (!options.cli) {
+    throw usageError('Missing --cli for ai-hook');
+  }
+
+  return options;
+}
+
+function parseAiHooksInstallArgs(args) {
+  const options = {
+    clis: []
+  };
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    switch (arg) {
+      case '--cli':
+        options.clis.push(requireValue(args, ++index, arg));
+        break;
+      case '--only-existing':
+        options.onlyExisting = true;
+        break;
+      case '--no-codex':
+        options.skipCodex = true;
+        break;
+      case '--dry-run':
+        options.dryRun = true;
+        break;
+      default:
+        throw usageError(`Unknown install-ai-hooks option: ${arg}`);
+    }
+  }
+
+  if (options.clis.length === 0) {
+    options.clis = DEFAULT_AI_CLIS;
+  }
+
+  return options;
+}
+
 function printHookInstallResult(result) {
   if (result.dryRun) {
     process.stdout.write(`Would ${result.hadBlock ? 'update' : 'install'} terminal-wait-notifier ${result.shell} hook in ${result.rcFile}:\n\n${result.block}\n`);
@@ -285,6 +469,52 @@ function printHookUninstallResult(result) {
   }
 
   process.stdout.write(`terminal-wait-notifier hook removed from ${result.rcFile}\nRestart your terminal, or run: source ${result.rcFile}\n`);
+}
+
+function printCodexHookInstallResult(result) {
+  if (result.dryRun) {
+    process.stdout.write(`Would ${actionVerb(result.action)} terminal-wait-notifier Codex Stop hook in ${result.filePath || 'Codex config'}\n`);
+    return;
+  }
+
+  process.stdout.write(`terminal-wait-notifier Codex Stop hook ${result.action} in ${result.filePath || 'Codex config'}\n`);
+
+  if (result.hook && result.hook.trustStatus && !['trusted', 'managed'].includes(result.hook.trustStatus)) {
+    process.stdout.write('Codex will ask you to review and trust this hook before it can run.\n');
+  }
+
+  for (const warning of result.warnings || []) {
+    process.stdout.write(`Codex warning: ${warning}\n`);
+  }
+}
+
+function printAiHooksInstallResults(results) {
+  for (const result of results) {
+    if (result.action === 'skipped') {
+      process.stdout.write(`${result.displayName} hook skipped: ${result.reason}\n`);
+      continue;
+    }
+    if (result.action === 'failed') {
+      process.stdout.write(`${result.displayName} hook failed: ${result.error}\n`);
+      continue;
+    }
+
+    if (result.dryRun) {
+      process.stdout.write(`${result.displayName} hook would ${actionVerb(result.action)} in ${result.filePath || 'settings'}\n`);
+    } else {
+      process.stdout.write(`${result.displayName} hook ${result.action} in ${result.filePath || 'settings'}\n`);
+    }
+    if (result.hook && result.hook.trustStatus && !['trusted', 'managed'].includes(result.hook.trustStatus)) {
+      process.stdout.write(`${result.displayName} may ask you to review and trust this hook before it can run.\n`);
+    }
+  }
+}
+
+function actionVerb(action) {
+  if (action === 'installed') return 'install';
+  if (action === 'updated') return 'update';
+  if (action === 'unchanged') return 'leave unchanged';
+  return action;
 }
 
 function requireValue(args, index, flag) {
@@ -326,6 +556,10 @@ Usage:
   twn hook [zsh|bash|fish] [options]
   twn install-hook [zsh|bash|fish] [options]
   twn uninstall-hook [zsh|bash|fish] [options]
+  twn codex-hook [options]
+  twn install-codex-hook [options]
+  twn ai-hook --cli <name> [options]
+  twn install-ai-hooks [options]
 
 Run options:
   --title <text>                  Notification title
@@ -349,13 +583,37 @@ Hook install options:
   --no-webhook                    Disable webhook push in the hook
   --bell                          Also ring the terminal bell from the hook
 
+Codex notification options:
+  --title <text>                  Notification title for codex-hook
+  --message <text>                Override Codex hook notification message
+  --webhook-url <url>             Push notification webhook endpoint
+  --no-desktop                    Disable desktop notification
+  --no-webhook                    Disable webhook push
+  --bell                          Also ring the terminal bell
+
+Codex install options:
+  --codex <command>               Codex executable for install-codex-hook
+  --command <command>             Hook command Codex should run
+  --timeout <seconds>             Hook timeout in seconds
+  --status-message <text>         Status shown by Codex while the hook runs
+  --dry-run                       Compute Codex hook changes without writing
+
+AI CLI hook options:
+  --cli <name>                    AI CLI name: codex, qwen, gemini, claude, qoder
+  --only-existing                 Only install hooks for CLIs with an existing settings directory
+  --no-codex                      Skip Codex when running install-ai-hooks
+  --dry-run                       Compute hook changes without writing
+
 Examples:
-  twn install-hook zsh --min-seconds 30
+  npm install -g terminal-wait-notifier
   twn run -- npm install
-  tw npm install   # after twn install-hook zsh
+  tw npm install   # after opening a new terminal
+  twn install-ai-hooks
+  twn install-codex-hook
   twn run --shell -- "npm test && npm run build"
   TWN_WEBHOOK_URL=https://example.com/hook twn run -- terraform apply
-  eval "$(twn hook zsh --min-seconds 30)"
+  TWN_SKIP_AUTO_HOOK=1 npm install -g terminal-wait-notifier
+  eval "$(twn hook zsh --min-seconds 0)"
 `;
 }
 
@@ -365,5 +623,9 @@ module.exports = {
   parseNotifyArgs,
   parseHookArgs,
   parseHookInstallArgs,
+  parseCodexHookArgs,
+  parseCodexHookInstallArgs,
+  parseAiHookArgs,
+  parseAiHooksInstallArgs,
   helpText
 };

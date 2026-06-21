@@ -2,6 +2,12 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const { renderShellHook } = require('../src/shell-hook');
 
+test('shell hook defaults to notifying every completed command', () => {
+  const hook = renderShellHook('zsh');
+  assert.match(hook, /command twn run --min-seconds 0 -- "\$@"/);
+  assert.match(hook, /elapsed >= 0/);
+});
+
 test('zsh hook includes tw shortcut and duplicate guard', () => {
   const hook = renderShellHook('zsh', { minSeconds: 5, webhook: false });
   assert.match(hook, /tw\(\) \{/);

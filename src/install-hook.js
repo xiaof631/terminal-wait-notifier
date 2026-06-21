@@ -80,7 +80,7 @@ ${BLOCK_END}`;
 
 function renderHookCommand(shell, options = {}) {
   const flags = [
-    `--min-seconds ${Number.isFinite(options.minSeconds) ? options.minSeconds : 30}`,
+    `--min-seconds ${Number.isFinite(options.minSeconds) ? options.minSeconds : 0}`,
     options.desktop === false ? '--no-desktop' : '',
     options.webhook === false ? '--no-webhook' : '',
     options.bell === true ? '--bell' : ''

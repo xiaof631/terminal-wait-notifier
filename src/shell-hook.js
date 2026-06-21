@@ -1,5 +1,5 @@
 function renderShellHook(shell, options = {}) {
-  const minSeconds = Number.isFinite(options.minSeconds) ? options.minSeconds : 30;
+  const minSeconds = Number.isFinite(options.minSeconds) ? options.minSeconds : 0;
   const notifyFlags = [
     options.desktop === false ? '--no-desktop' : '',
     options.webhook === false ? '--no-webhook' : '',
