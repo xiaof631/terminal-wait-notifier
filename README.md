@@ -107,7 +107,47 @@ twn run --no-webhook -- npm test
 
 ## Shell 集成
 
-如果你想让普通长命令结束后自动提醒，可以把 hook 写进 shell 配置。
+如果你想让普通长命令结束后自动提醒，可以让 `twn` 自动写入 shell 配置。
+
+zsh:
+
+```bash
+twn install-hook zsh --min-seconds 30
+```
+
+bash:
+
+```bash
+twn install-hook bash --min-seconds 30
+```
+
+fish:
+
+```fish
+twn install-hook fish --min-seconds 30
+```
+
+这会在对应配置文件里写入一个带标记的 managed block。重复执行会更新这个 block，不会重复追加。
+
+卸载自动注入：
+
+```bash
+twn uninstall-hook zsh
+```
+
+想先看它会写什么：
+
+```bash
+twn install-hook zsh --min-seconds 30 --dry-run
+```
+
+你也可以指定配置文件：
+
+```bash
+twn install-hook zsh --rc-file ~/.zshrc --min-seconds 30
+```
+
+如果不想写入配置文件，也可以手动 eval。
 
 zsh:
 

@@ -1,8 +1,9 @@
 const { runCommand } = require('./run-command');
 const { sendNotification } = require('./notify');
 const { renderShellHook } = require('./shell-hook');
+const { installShellHook, uninstallShellHook } = require('./install-hook');
 
-const BUILTIN_COMMANDS = new Set(['run', 'notify', 'hook', 'help', 'version']);
+const BUILTIN_COMMANDS = new Set(['run', 'notify', 'hook', 'install-hook', 'uninstall-hook', 'help', 'version']);
 
 async function main(argv) {
   const args = Array.from(argv);
@@ -47,6 +48,20 @@ async function main(argv) {
   if (command === 'hook') {
     const { shell, options } = parseHookArgs(args);
     process.stdout.write(renderShellHook(shell, options));
+    return;
+  }
+
+  if (command === 'install-hook') {
+    const { shell, options } = parseHookInstallArgs(args, { uninstall: false });
+    const result = installShellHook(shell, options);
+    printHookInstallResult(result);
+    return;
+  }
+
+  if (command === 'uninstall-hook') {
+    const { shell, options } = parseHookInstallArgs(args, { uninstall: true });
+    const result = uninstallShellHook(shell, options);
+    printHookUninstallResult(result);
     return;
   }
 
@@ -189,6 +204,89 @@ function parseHookArgs(args) {
   return { shell, options };
 }
 
+function parseHookInstallArgs(args, mode = {}) {
+  const options = {};
+  let shell;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (!arg.startsWith('--') && !shell) {
+      shell = arg;
+      continue;
+    }
+
+    switch (arg) {
+      case '--shell':
+        shell = requireValue(args, ++index, arg);
+        break;
+      case '--rc-file':
+        options.rcFile = requireValue(args, ++index, arg);
+        break;
+      case '--dry-run':
+        options.dryRun = true;
+        break;
+      case '--min-seconds':
+        if (mode.uninstall) throw usageError(`${arg} is only supported by install-hook`);
+        options.minSeconds = parseNumber(requireValue(args, ++index, arg), arg);
+        break;
+      case '--no-desktop':
+        if (mode.uninstall) throw usageError(`${arg} is only supported by install-hook`);
+        options.desktop = false;
+        break;
+      case '--no-webhook':
+        if (mode.uninstall) throw usageError(`${arg} is only supported by install-hook`);
+        options.webhook = false;
+        break;
+      case '--bell':
+        if (mode.uninstall) throw usageError(`${arg} is only supported by install-hook`);
+        options.bell = true;
+        break;
+      default:
+        throw usageError(`Unknown ${mode.uninstall ? 'uninstall-hook' : 'install-hook'} option: ${arg}`);
+    }
+  }
+
+  if (!shell) {
+    shell = guessShell();
+  }
+
+  return { shell, options };
+}
+
+function printHookInstallResult(result) {
+  if (result.dryRun) {
+    process.stdout.write(`Would ${result.hadBlock ? 'update' : 'install'} terminal-wait-notifier ${result.shell} hook in ${result.rcFile}:\n\n${result.block}\n`);
+    return;
+  }
+
+  if (result.action === 'unchanged') {
+    process.stdout.write(`terminal-wait-notifier hook is already installed in ${result.rcFile}\n`);
+    return;
+  }
+
+  process.stdout.write(`terminal-wait-notifier hook ${result.action} in ${result.rcFile}\nRestart your terminal, or run: source ${result.rcFile}\n`);
+}
+
+function printHookUninstallResult(result) {
+  if (result.dryRun) {
+    process.stdout.write(`Would remove terminal-wait-notifier ${result.shell} hook from ${result.rcFile}\n`);
+    return;
+  }
+
+  if (result.action === 'missing') {
+    process.stdout.write(`No rc file found at ${result.rcFile}\n`);
+    return;
+  }
+
+  if (result.action === 'not-found') {
+    process.stdout.write(`No terminal-wait-notifier hook found in ${result.rcFile}\n`);
+    return;
+  }
+
+  process.stdout.write(`terminal-wait-notifier hook removed from ${result.rcFile}\nRestart your terminal, or run: source ${result.rcFile}\n`);
+}
+
 function requireValue(args, index, flag) {
   if (index >= args.length || args[index] === '') {
     throw usageError(`Missing value for ${flag}`);
@@ -226,6 +324,8 @@ Usage:
   twn -- <command> [args...]
   twn notify [message] [options]
   twn hook [zsh|bash|fish] [options]
+  twn install-hook [zsh|bash|fish] [options]
+  twn uninstall-hook [zsh|bash|fish] [options]
 
 Run options:
   --title <text>                  Notification title
@@ -240,9 +340,19 @@ Run options:
   --no-webhook                    Disable webhook push
   --bell                          Also ring the terminal bell
 
+Hook install options:
+  --shell <name>                  Shell to configure: zsh, bash, or fish
+  --rc-file <path>                Shell config file to edit
+  --min-seconds <n>               Notify on completion only after n seconds
+  --dry-run                       Print the managed block without writing
+  --no-desktop                    Disable desktop notification in the hook
+  --no-webhook                    Disable webhook push in the hook
+  --bell                          Also ring the terminal bell from the hook
+
 Examples:
+  twn install-hook zsh --min-seconds 30
   twn run -- npm install
-  tw npm install   # after eval "$(twn hook zsh)"
+  tw npm install   # after twn install-hook zsh
   twn run --shell -- "npm test && npm run build"
   TWN_WEBHOOK_URL=https://example.com/hook twn run -- terraform apply
   eval "$(twn hook zsh --min-seconds 30)"
@@ -254,5 +364,6 @@ module.exports = {
   parseRunArgs,
   parseNotifyArgs,
   parseHookArgs,
+  parseHookInstallArgs,
   helpText
 };
