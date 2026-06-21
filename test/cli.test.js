@@ -3,8 +3,10 @@ const test = require('node:test');
 const {
   parseAiHookArgs,
   parseAiHooksInstallArgs,
+  parseAiHooksUninstallArgs,
   parseCodexHookArgs,
   parseCodexHookInstallArgs,
+  parseCodexHookUninstallArgs,
   parseStatusArgs,
   parseRunArgs
 } = require('../src/cli');
@@ -29,6 +31,34 @@ test('parses Codex hook install dry-run option', () => {
 test('parses AI hooks dry-run option', () => {
   assert.deepEqual(parseAiHooksInstallArgs(['--cli', 'qwen', '--dry-run']), {
     clis: ['qwen'],
+    dryRun: true
+  });
+});
+
+test('parses hook uninstall options for Codex and AI CLIs', () => {
+  assert.deepEqual(parseCodexHookUninstallArgs([
+    '--codex',
+    'codex-nightly',
+    '--command',
+    'twn codex-hook',
+    '--dry-run',
+    '--rpc-timeout-ms',
+    '200'
+  ]), {
+    codexCommand: 'codex-nightly',
+    hookCommand: 'twn codex-hook',
+    dryRun: true,
+    rpcTimeoutMs: 200
+  });
+
+  assert.deepEqual(parseAiHooksUninstallArgs([
+    '--cli',
+    'qwen',
+    '--no-codex',
+    '--dry-run'
+  ]), {
+    clis: ['qwen'],
+    skipCodex: true,
     dryRun: true
   });
 });

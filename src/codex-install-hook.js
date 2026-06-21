@@ -20,6 +20,18 @@ async function installCodexHook(options = {}) {
   });
 }
 
+async function uninstallCodexHook(options = {}) {
+  return removeCodexHookWithAppServer({
+    codexCommand: options.codexCommand || DEFAULT_CODEX_COMMAND,
+    hookCommand: options.hookCommand || DEFAULT_CODEX_HOOK_COMMAND,
+    dryRun: options.dryRun,
+    cwd: options.cwd || process.cwd(),
+    env: options.env || process.env,
+    spawnFn: options.spawnFn || spawn,
+    rpcTimeoutMs: options.rpcTimeoutMs
+  });
+}
+
 function buildCodexHookHandler(options = {}) {
   return {
     type: 'command',
@@ -53,6 +65,39 @@ function mergeCodexStopHooks(existingStopHooks, options = {}) {
   }
 
   return groups;
+}
+
+function removeCodexStopHooks(existingStopHooks, options = {}) {
+  const groups = Array.isArray(existingStopHooks)
+    ? existingStopHooks.map(sanitizeHookGroup).filter(Boolean)
+    : [];
+  const command = options.hookCommand || DEFAULT_CODEX_HOOK_COMMAND;
+  const removedHooks = [];
+  const nextGroups = [];
+
+  for (const group of groups) {
+    const remainingHooks = [];
+    for (const hook of group.hooks) {
+      if (hook.command === command) {
+        removedHooks.push(hook);
+      } else {
+        remainingHooks.push(hook);
+      }
+    }
+
+    if (remainingHooks.length > 0) {
+      nextGroups.push({
+        ...group,
+        hooks: remainingHooks
+      });
+    }
+  }
+
+  return {
+    stopHooks: nextGroups,
+    removedHooks,
+    changed: removedHooks.length > 0
+  };
 }
 
 function getUserStopHooks(configReadResponse) {
@@ -291,10 +336,179 @@ function writeCodexHookWithAppServer(options = {}) {
   });
 }
 
+function removeCodexHookWithAppServer(options = {}) {
+  const codexCommand = options.codexCommand || DEFAULT_CODEX_COMMAND;
+  const cwd = options.cwd || process.cwd();
+  const env = options.env || process.env;
+  const spawnFn = options.spawnFn || spawn;
+  const rpcTimeoutMs = options.rpcTimeoutMs || 8000;
+  const hookCommand = options.hookCommand || DEFAULT_CODEX_HOOK_COMMAND;
+  const dryRun = Boolean(options.dryRun);
+
+  return new Promise((resolve, reject) => {
+    const child = spawnFn(codexCommand, ['app-server', '--stdio'], {
+      cwd,
+      env,
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+
+    let stdoutBuffer = '';
+    let stderrOutput = '';
+    let configFilePath;
+    let userConfigPath;
+    let action = 'not-found';
+    let settled = false;
+    let initialized = false;
+    let removal = {
+      stopHooks: [],
+      removedHooks: [],
+      changed: false
+    };
+
+    const timer = setTimeout(() => {
+      finish(new Error(`Timed out while removing Codex hook after ${rpcTimeoutMs}ms`));
+    }, rpcTimeoutMs);
+
+    child.on('error', finish);
+    child.on('exit', (code) => {
+      if (!settled && code !== 0) {
+        finish(new Error(`Codex app-server exited with code ${code}`));
+      }
+    });
+
+    child.stderr.on('data', (chunk) => {
+      stderrOutput += String(chunk);
+    });
+
+    child.stdout.on('data', (chunk) => {
+      stdoutBuffer += String(chunk);
+      const lines = stdoutBuffer.split(/\r?\n/);
+      stdoutBuffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.trim()) {
+          handleRpcMessage(line);
+        }
+      }
+    });
+
+    send(1, 'initialize', {
+      clientInfo: {
+        name: 'terminal-wait-notifier',
+        version: require('../package.json').version
+      },
+      capabilities: {
+        experimentalApi: true
+      }
+    });
+
+    function handleRpcMessage(line) {
+      let message;
+      try {
+        message = JSON.parse(line);
+      } catch {
+        return;
+      }
+
+      if (message.error) {
+        finish(new Error(message.error.message || 'Codex app-server returned an error'));
+        return;
+      }
+
+      if (message.id === 1) {
+        initialized = true;
+        send(2, 'config/read', { cwd, includeLayers: true });
+        return;
+      }
+
+      if (message.id === 2) {
+        userConfigPath = findUserConfigPath(message.result);
+        removal = removeCodexStopHooks(getUserStopHooks(message.result), { hookCommand });
+
+        if (!removal.changed) {
+          finish(null, buildRemovalResult());
+          return;
+        }
+
+        action = 'removed';
+        if (dryRun) {
+          finish(null, buildRemovalResult());
+          return;
+        }
+
+        send(3, 'config/batchWrite', {
+          reloadUserConfig: true,
+          edits: [{
+            keyPath: CODEX_STOP_HOOK_KEY_PATH,
+            mergeStrategy: 'upsert',
+            value: removal.stopHooks
+          }]
+        });
+        return;
+      }
+
+      if (message.id === 3) {
+        configFilePath = message.result && message.result.filePath;
+        send(4, 'hooks/list', { cwds: [cwd] });
+        return;
+      }
+
+      if (message.id === 4) {
+        finish(null, buildRemovalResult(message.result));
+      }
+    }
+
+    function buildRemovalResult(hooksListResult) {
+      const entry = hooksListResult && Array.isArray(hooksListResult.data)
+        ? hooksListResult.data[0]
+        : undefined;
+
+      return {
+        action,
+        filePath: configFilePath || userConfigPath,
+        hookCommand,
+        removedHooks: removal.removedHooks,
+        warnings: entry?.warnings || [],
+        errors: entry?.errors || [],
+        stderr: stderrOutput.trim(),
+        initialized,
+        dryRun,
+        keyPath: CODEX_STOP_HOOK_KEY_PATH,
+        value: removal.stopHooks
+      };
+    }
+
+    function send(id, method, params) {
+      child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id, method, params })}\n`);
+    }
+
+    function finish(error, result) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      child.stdin.end();
+
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(result);
+    }
+  });
+}
+
 function normalizeStopHooks(stopHooks) {
   return Array.isArray(stopHooks)
     ? stopHooks.map(sanitizeHookGroup).filter(Boolean)
     : [];
+}
+
+function findUserConfigPath(configReadResponse) {
+  const layers = configReadResponse && Array.isArray(configReadResponse.layers)
+    ? configReadResponse.layers
+    : [];
+  const userLayer = layers.find((layer) => layer && layer.name && layer.name.type === 'user');
+  return userLayer?.filePath || userLayer?.path || userLayer?.name?.filePath || userLayer?.name?.path;
 }
 
 module.exports = {
@@ -304,10 +518,13 @@ module.exports = {
   DEFAULT_CODEX_HOOK_STATUS_MESSAGE,
   CODEX_STOP_HOOK_KEY_PATH,
   installCodexHook,
+  uninstallCodexHook,
   writeCodexHookWithAppServer,
+  removeCodexHookWithAppServer,
   buildCodexHookHandler,
   buildCodexHookGroup,
   mergeCodexStopHooks,
+  removeCodexStopHooks,
   normalizeStopHooks,
   getUserStopHooks,
   sanitizeHookGroup,

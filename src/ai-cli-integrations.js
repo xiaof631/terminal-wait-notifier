@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { installCodexHook } = require('./codex-install-hook');
+const { installCodexHook, uninstallCodexHook } = require('./codex-install-hook');
 
 const DEFAULT_AI_CLIS = ['codex', 'qwen', 'gemini', 'claude', 'qoder'];
 const JSON_SETTINGS_INTEGRATIONS = {
@@ -117,6 +117,61 @@ async function installAiCliHooks(options = {}) {
   return results;
 }
 
+async function uninstallAiCliHooks(options = {}) {
+  const clis = normalizeCliList(options.clis || DEFAULT_AI_CLIS);
+  const codexUninstaller = options.uninstallCodexHook || uninstallCodexHook;
+  const results = [];
+
+  for (const cli of clis) {
+    if (cli === 'codex') {
+      if (options.skipCodex) continue;
+      try {
+        const result = await codexUninstaller({
+          hookCommand: options.codexHookCommand || 'twn codex-hook',
+          codexCommand: options.codexCommand,
+          dryRun: options.dryRun,
+          cwd: options.cwd,
+          env: options.env,
+          rpcTimeoutMs: options.rpcTimeoutMs
+        });
+        results.push({
+          cli,
+          displayName: 'Codex',
+          action: result.action,
+          filePath: result.filePath,
+          hookCommand: result.hookCommand,
+          removedHooks: result.removedHooks || [],
+          dryRun: result.dryRun,
+          warnings: result.warnings || [],
+          errors: result.errors || []
+        });
+      } catch (error) {
+        results.push(errorResult(cli, 'Codex', error));
+      }
+      continue;
+    }
+
+    const integration = JSON_SETTINGS_INTEGRATIONS[cli];
+    if (!integration) {
+      results.push({
+        cli,
+        displayName: cli,
+        action: 'skipped',
+        reason: 'unsupported'
+      });
+      continue;
+    }
+
+    try {
+      results.push(uninstallJsonSettingsHook(integration, options));
+    } catch (error) {
+      results.push(errorResult(cli, integration.displayName, error));
+    }
+  }
+
+  return results;
+}
+
 function installJsonSettingsHook(integration, options = {}) {
   const settingsPath = resolveIntegrationSettingsPath(integration, options);
   const existed = fs.existsSync(settingsPath);
@@ -139,6 +194,41 @@ function installJsonSettingsHook(integration, options = {}) {
   };
 }
 
+function uninstallJsonSettingsHook(integration, options = {}) {
+  const settingsPath = resolveIntegrationSettingsPath(integration, options);
+  const existed = fs.existsSync(settingsPath);
+
+  if (!existed) {
+    return {
+      cli: integrationKey(integration),
+      displayName: integration.displayName,
+      action: 'not-found',
+      reason: 'missing-file',
+      filePath: settingsPath,
+      changed: false,
+      dryRun: Boolean(options.dryRun),
+      removedHooks: []
+    };
+  }
+
+  const existing = readJsonFile(settingsPath);
+  const result = removeHookFromSettings(existing, integration);
+
+  if (!options.dryRun && result.changed) {
+    fs.writeFileSync(settingsPath, `${JSON.stringify(result.settings, null, 2)}\n`, 'utf8');
+  }
+
+  return {
+    cli: integrationKey(integration),
+    displayName: integration.displayName,
+    action: result.changed ? 'removed' : 'not-found',
+    filePath: settingsPath,
+    changed: result.changed,
+    dryRun: Boolean(options.dryRun),
+    removedHooks: result.removedHooks
+  };
+}
+
 function mergeHookIntoSettings(settings, integration) {
   const next = clone(settings && typeof settings === 'object' && !Array.isArray(settings) ? settings : {});
   if (!next.hooks || typeof next.hooks !== 'object' || Array.isArray(next.hooks)) {
@@ -155,6 +245,59 @@ function mergeHookIntoSettings(settings, integration) {
 
   next.hooks[integration.eventName] = eventHooks;
   return next;
+}
+
+function removeHookFromSettings(settings, integration) {
+  const next = clone(settings && typeof settings === 'object' && !Array.isArray(settings) ? settings : {});
+  const removedHooks = [];
+
+  if (!next.hooks || typeof next.hooks !== 'object' || Array.isArray(next.hooks)) {
+    return { settings: next, removedHooks, changed: false };
+  }
+
+  const eventHooks = next.hooks[integration.eventName];
+  if (!Array.isArray(eventHooks)) {
+    return { settings: next, removedHooks, changed: false };
+  }
+
+  const nextEventHooks = [];
+  for (const group of eventHooks) {
+    if (!group || typeof group !== 'object' || !Array.isArray(group.hooks)) {
+      nextEventHooks.push(group);
+      continue;
+    }
+
+    const nextGroup = clone(group);
+    nextGroup.hooks = [];
+
+    for (const hook of group.hooks) {
+      if (hook && typeof hook === 'object' && hook.command === integration.command) {
+        removedHooks.push(clone(hook));
+      } else {
+        nextGroup.hooks.push(clone(hook));
+      }
+    }
+
+    if (nextGroup.hooks.length > 0) {
+      nextEventHooks.push(nextGroup);
+    }
+  }
+
+  if (removedHooks.length === 0) {
+    return { settings: next, removedHooks, changed: false };
+  }
+
+  if (nextEventHooks.length > 0) {
+    next.hooks[integration.eventName] = nextEventHooks;
+  } else {
+    delete next.hooks[integration.eventName];
+  }
+
+  if (Object.keys(next.hooks).length === 0) {
+    delete next.hooks;
+  }
+
+  return { settings: next, removedHooks, changed: true };
 }
 
 function buildHookGroup(integration) {
@@ -227,6 +370,7 @@ function expandHome(file, homeDir = os.homedir()) {
 }
 
 function clone(value) {
+  if (value === undefined) return undefined;
   return JSON.parse(JSON.stringify(value));
 }
 
@@ -243,8 +387,11 @@ module.exports = {
   DEFAULT_AI_CLIS,
   JSON_SETTINGS_INTEGRATIONS,
   installAiCliHooks,
+  uninstallAiCliHooks,
   installJsonSettingsHook,
+  uninstallJsonSettingsHook,
   mergeHookIntoSettings,
+  removeHookFromSettings,
   buildHookGroup,
   normalizeHookGroup,
   normalizeHookHandler,

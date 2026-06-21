@@ -7,6 +7,8 @@ const {
   buildCodexHookHandler,
   getUserStopHooks,
   mergeCodexStopHooks,
+  removeCodexHookWithAppServer,
+  removeCodexStopHooks,
   normalizeStopHooks,
   normalizeTimeout,
   sanitizeHookGroup,
@@ -71,6 +73,49 @@ test('appends Codex Stop hook when missing', () => {
   assert.equal(merged.length, 1);
   assert.equal(merged[0].hooks[0].command, 'twn codex-hook');
   assert.equal(merged[0].hooks[0].timeout, 4);
+});
+
+test('removes Codex Stop hook by exact command only', () => {
+  const existing = [
+    {
+      matcher: 'first',
+      hooks: [
+        { type: 'command', command: 'twn codex-hook', async: false },
+        { type: 'command', command: 'existing-codex-hook' }
+      ]
+    },
+    {
+      hooks: [
+        { type: 'command', command: 'twn codex-hook --sound Ping' }
+      ]
+    }
+  ];
+
+  const result = removeCodexStopHooks(existing, { hookCommand: 'twn codex-hook' });
+
+  assert.equal(result.changed, true);
+  assert.equal(result.removedHooks.length, 1);
+  assert.deepEqual(result.stopHooks, [
+    {
+      matcher: 'first',
+      hooks: [{ type: 'command', command: 'existing-codex-hook' }]
+    },
+    {
+      hooks: [{ type: 'command', command: 'twn codex-hook --sound Ping' }]
+    }
+  ]);
+});
+
+test('reports unchanged Codex Stop hooks when target command is absent', () => {
+  const existing = [{
+    hooks: [{ type: 'command', command: 'existing-codex-hook' }]
+  }];
+
+  const result = removeCodexStopHooks(existing, { hookCommand: 'twn codex-hook' });
+
+  assert.equal(result.changed, false);
+  assert.deepEqual(result.removedHooks, []);
+  assert.deepEqual(result.stopHooks, existing);
 });
 
 test('extracts only user-layer Codex Stop hooks', () => {
@@ -147,6 +192,106 @@ test('dry-run computes Codex hook without writing config', async () => {
   assert.equal(result.action, 'installed');
   assert.equal(result.keyPath, CODEX_STOP_HOOK_KEY_PATH);
   assert.equal(result.value[0].hooks[0].command, 'twn codex-hook');
+  assert.deepEqual(mock.messages.map((message) => message.method), [
+    'initialize',
+    'config/read'
+  ]);
+});
+
+test('dry-run removes Codex hook without writing config', async () => {
+  const mock = createCodexAppServerMock({
+    layers: [{
+      name: { type: 'user', path: '/tmp/config.toml' },
+      config: {
+        hooks: {
+          Stop: [{
+            hooks: [
+              { type: 'command', command: 'twn codex-hook' },
+              { type: 'command', command: 'existing-codex-hook' }
+            ]
+          }]
+        }
+      }
+    }]
+  });
+
+  const result = await removeCodexHookWithAppServer({
+    dryRun: true,
+    spawnFn: mock.spawnFn,
+    cwd: '/tmp/project',
+    env: {},
+    rpcTimeoutMs: 1000
+  });
+
+  assert.equal(result.dryRun, true);
+  assert.equal(result.action, 'removed');
+  assert.equal(result.filePath, '/tmp/config.toml');
+  assert.equal(result.removedHooks.length, 1);
+  assert.deepEqual(result.value, [{
+    hooks: [{ type: 'command', command: 'existing-codex-hook' }]
+  }]);
+  assert.deepEqual(mock.messages.map((message) => message.method), [
+    'initialize',
+    'config/read'
+  ]);
+});
+
+test('removes Codex hook through app-server when not dry-run', async () => {
+  const mock = createCodexAppServerMock({
+    layers: [{
+      name: { type: 'user', path: '/tmp/config.toml' },
+      config: {
+        hooks: {
+          Stop: [{
+            hooks: [{ type: 'command', command: 'twn codex-hook' }]
+          }]
+        }
+      }
+    }]
+  });
+
+  const result = await removeCodexHookWithAppServer({
+    spawnFn: mock.spawnFn,
+    cwd: '/tmp/project',
+    env: {},
+    rpcTimeoutMs: 1000
+  });
+
+  assert.equal(result.action, 'removed');
+  assert.equal(result.filePath, '/tmp/config.toml');
+  assert.equal(result.value.length, 0);
+  assert.deepEqual(mock.messages.map((message) => message.method), [
+    'initialize',
+    'config/read',
+    'config/batchWrite',
+    'hooks/list'
+  ]);
+  assert.deepEqual(mock.messages[2].params.edits[0].value, []);
+});
+
+test('Codex hook removal succeeds when target hook is not found', async () => {
+  const mock = createCodexAppServerMock({
+    layers: [{
+      name: { type: 'user', path: '/tmp/config.toml' },
+      config: {
+        hooks: {
+          Stop: [{
+            hooks: [{ type: 'command', command: 'existing-codex-hook' }]
+          }]
+        }
+      }
+    }]
+  });
+
+  const result = await removeCodexHookWithAppServer({
+    spawnFn: mock.spawnFn,
+    cwd: '/tmp/project',
+    env: {},
+    rpcTimeoutMs: 1000
+  });
+
+  assert.equal(result.action, 'not-found');
+  assert.equal(result.filePath, '/tmp/config.toml');
   assert.deepEqual(mock.messages.map((message) => message.method), [
     'initialize',
     'config/read'

@@ -11,8 +11,11 @@ const {
   mergeHookIntoSettings,
   normalizeHookGroup,
   normalizeHookHandler,
+  removeHookFromSettings,
   resolveIntegrationSettingsPath,
-  settingsHomeExists
+  settingsHomeExists,
+  uninstallAiCliHooks,
+  uninstallJsonSettingsHook
 } = require('../src/ai-cli-integrations');
 
 test('builds hook groups for JSON settings integrations', () => {
@@ -69,6 +72,74 @@ test('preserves existing hook fields while appending integration hook', () => {
   assert.equal(next.hooks.Stop[1].hooks[0].command, 'twn ai-hook --cli qwen');
 });
 
+test('removes AI CLI hook from multiple groups while preserving other settings', () => {
+  const settings = {
+    model: 'qwen',
+    hooks: {
+      Stop: [
+        {
+          matcher: 'first',
+          hooks: [
+            { type: 'command', command: 'twn ai-hook --cli qwen', name: 'terminal-wait-notifier' },
+            { type: 'command', command: 'existing-hook', name: 'keep' }
+          ]
+        },
+        {
+          matcher: 'second',
+          hooks: [
+            { type: 'command', command: 'twn ai-hook --cli qwen' }
+          ]
+        }
+      ],
+      OtherEvent: [{
+        hooks: [{ type: 'command', command: 'other-event-hook' }]
+      }]
+    }
+  };
+
+  const result = removeHookFromSettings(settings, JSON_SETTINGS_INTEGRATIONS.qwen);
+
+  assert.equal(result.changed, true);
+  assert.equal(result.removedHooks.length, 2);
+  assert.equal(result.settings.model, 'qwen');
+  assert.deepEqual(result.settings.hooks.Stop, [{
+    matcher: 'first',
+    hooks: [{ type: 'command', command: 'existing-hook', name: 'keep' }]
+  }]);
+  assert.deepEqual(result.settings.hooks.OtherEvent, settings.hooks.OtherEvent);
+});
+
+test('reports not changed when AI CLI hook is absent', () => {
+  const settings = {
+    hooks: {
+      Stop: [{
+        hooks: [{ type: 'command', command: 'existing-hook' }]
+      }]
+    }
+  };
+
+  const result = removeHookFromSettings(settings, JSON_SETTINGS_INTEGRATIONS.claude);
+
+  assert.equal(result.changed, false);
+  assert.deepEqual(result.removedHooks, []);
+  assert.deepEqual(result.settings, settings);
+});
+
+test('cleans empty AI CLI event and hooks object after removal', () => {
+  const settings = {
+    hooks: {
+      Stop: [{
+        hooks: [{ type: 'command', command: 'twn ai-hook --cli claude' }]
+      }]
+    }
+  };
+
+  const result = removeHookFromSettings(settings, JSON_SETTINGS_INTEGRATIONS.claude);
+
+  assert.equal(result.changed, true);
+  assert.deepEqual(result.settings, {});
+});
+
 test('normalizes hook groups by keeping valid command hook objects intact', () => {
   const group = {
     matcher: '*',
@@ -123,6 +194,74 @@ test('reports installed action when creating a new settings file', () => {
   }
 });
 
+test('uninstalls JSON settings hook without removing other hooks', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'twn-ai-uninstall-settings-'));
+  try {
+    fs.mkdirSync(path.join(tmp, '.gemini'), { recursive: true });
+    fs.writeFileSync(path.join(tmp, '.gemini/settings.json'), JSON.stringify({
+      hooks: {
+        AfterAgent: [{
+          matcher: '*',
+          hooks: [
+            { type: 'command', command: 'twn ai-hook --cli gemini' },
+            { type: 'command', command: 'keep-me' }
+          ]
+        }]
+      },
+      ui: 'keep'
+    }), 'utf8');
+
+    const result = uninstallJsonSettingsHook(JSON_SETTINGS_INTEGRATIONS.gemini, { homeDir: tmp });
+    const saved = JSON.parse(fs.readFileSync(path.join(tmp, '.gemini/settings.json'), 'utf8'));
+
+    assert.equal(result.action, 'removed');
+    assert.equal(result.removedHooks.length, 1);
+    assert.equal(saved.ui, 'keep');
+    assert.deepEqual(saved.hooks.AfterAgent[0].hooks, [{ type: 'command', command: 'keep-me' }]);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('dry-run AI CLI uninstall does not write settings', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'twn-ai-uninstall-dry-run-'));
+  try {
+    const file = path.join(tmp, '.qoder/settings.json');
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    const original = JSON.stringify({
+      hooks: {
+        Stop: [{
+          hooks: [{ type: 'command', command: 'twn ai-hook --cli qoder' }]
+        }]
+      }
+    }, null, 2);
+    fs.writeFileSync(file, `${original}\n`, 'utf8');
+
+    const result = uninstallJsonSettingsHook(JSON_SETTINGS_INTEGRATIONS.qoder, {
+      homeDir: tmp,
+      dryRun: true
+    });
+
+    assert.equal(result.action, 'removed');
+    assert.equal(fs.readFileSync(file, 'utf8'), `${original}\n`);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('reports not-found when uninstalling missing AI CLI settings hook', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'twn-ai-uninstall-missing-'));
+  try {
+    const result = uninstallJsonSettingsHook(JSON_SETTINGS_INTEGRATIONS.qwen, { homeDir: tmp });
+
+    assert.equal(result.action, 'not-found');
+    assert.equal(result.reason, 'missing-file');
+    assert.equal(result.changed, false);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test('supports only-existing AI CLI installs', async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'twn-ai-only-existing-'));
   try {
@@ -142,6 +281,30 @@ test('supports only-existing AI CLI installs', async () => {
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
+});
+
+test('passes dry-run through to Codex uninstalls', async () => {
+  const calls = [];
+
+  const results = await uninstallAiCliHooks({
+    clis: ['codex'],
+    dryRun: true,
+    uninstallCodexHook: async (options) => {
+      calls.push(options);
+      return {
+        action: 'removed',
+        dryRun: options.dryRun,
+        filePath: '/Users/test/.codex/config.toml',
+        removedHooks: [{ command: 'twn codex-hook' }]
+      };
+    }
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].dryRun, true);
+  assert.equal(results[0].cli, 'codex');
+  assert.equal(results[0].action, 'removed');
+  assert.equal(results[0].dryRun, true);
 });
 
 test('passes dry-run through to Codex installs', async () => {

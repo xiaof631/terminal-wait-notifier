@@ -350,6 +350,46 @@ twn install-ai-hooks --cli qoder
 
 JSON settings 会追加一个 managed command hook，不会删除已有 hook。Codex 仍然可能要求你在下一次打开 Codex 时 review/trust 新 hook。
 
+## 卸载和恢复
+
+所有卸载命令都只移除 terminal-wait-notifier 写入的 hook，不会删除配置文件、配置目录或用户自己的其他 hooks。正式执行前可以先用 `--dry-run` 预览。
+
+卸载当前 shell 的自动完成提醒：
+
+```bash
+twn uninstall-hook zsh --dry-run
+twn uninstall-hook zsh
+```
+
+卸载 Codex Stop hook：
+
+```bash
+twn uninstall-codex-hook --dry-run
+twn uninstall-codex-hook
+```
+
+一键卸载 Codex + Qwen Code / Gemini CLI / Claude Code / Qoder CLI 的任务结束 hook：
+
+```bash
+twn uninstall-ai-hooks --dry-run
+twn uninstall-ai-hooks
+```
+
+只卸载某一个 AI CLI：
+
+```bash
+twn uninstall-ai-hooks --cli qwen --dry-run
+twn uninstall-ai-hooks --cli qwen
+```
+
+如果目标 hook 不存在，卸载命令会输出 `not found` 类提示并正常结束。重新安装可以再次执行：
+
+```bash
+twn install-hook zsh
+twn install-codex-hook
+twn install-ai-hooks
+```
+
 ## 常用选项
 
 ```bash

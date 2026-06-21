@@ -3,9 +3,9 @@ const { sendNotification } = require('./notify');
 const { renderShellHook } = require('./shell-hook');
 const { installShellHook, uninstallShellHook } = require('./install-hook');
 const { notifyCodexHook } = require('./codex-notify');
-const { installCodexHook } = require('./codex-install-hook');
+const { installCodexHook, uninstallCodexHook } = require('./codex-install-hook');
 const { notifyAiCliHook } = require('./ai-hook-notify');
-const { installAiCliHooks, DEFAULT_AI_CLIS } = require('./ai-cli-integrations');
+const { installAiCliHooks, uninstallAiCliHooks, DEFAULT_AI_CLIS } = require('./ai-cli-integrations');
 const { collectStatus, collectDoctor, formatStatus, formatDoctor } = require('./status');
 
 const BUILTIN_COMMANDS = new Set([
@@ -16,8 +16,10 @@ const BUILTIN_COMMANDS = new Set([
   'uninstall-hook',
   'codex-hook',
   'install-codex-hook',
+  'uninstall-codex-hook',
   'ai-hook',
   'install-ai-hooks',
+  'uninstall-ai-hooks',
   'status',
   'doctor',
   'help',
@@ -101,6 +103,13 @@ async function main(argv) {
     return;
   }
 
+  if (command === 'uninstall-codex-hook') {
+    const options = parseCodexHookUninstallArgs(args);
+    const result = await uninstallCodexHook(options);
+    printCodexHookUninstallResult(result);
+    return;
+  }
+
   if (command === 'ai-hook') {
     const options = parseAiHookArgs(args);
     await notifyAiCliHook({
@@ -117,6 +126,13 @@ async function main(argv) {
     const options = parseAiHooksInstallArgs(args);
     const results = await installAiCliHooks(options);
     printAiHooksInstallResults(results);
+    return;
+  }
+
+  if (command === 'uninstall-ai-hooks') {
+    const options = parseAiHooksUninstallArgs(args);
+    const results = await uninstallAiCliHooks(options);
+    printAiHooksUninstallResults(results);
     return;
   }
 
@@ -448,6 +464,32 @@ function parseCodexHookInstallArgs(args) {
   return options;
 }
 
+function parseCodexHookUninstallArgs(args) {
+  const options = {};
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    switch (arg) {
+      case '--codex':
+        options.codexCommand = requireValue(args, ++index, arg);
+        break;
+      case '--command':
+        options.hookCommand = requireValue(args, ++index, arg);
+        break;
+      case '--dry-run':
+        options.dryRun = true;
+        break;
+      case '--rpc-timeout-ms':
+        options.rpcTimeoutMs = parseNumber(requireValue(args, ++index, arg), arg);
+        break;
+      default:
+        throw usageError(`Unknown uninstall-codex-hook option: ${arg}`);
+    }
+  }
+
+  return options;
+}
+
 function parseAiHookArgs(args) {
   const options = {};
 
@@ -521,6 +563,41 @@ function parseAiHooksInstallArgs(args) {
         break;
       default:
         throw usageError(`Unknown install-ai-hooks option: ${arg}`);
+    }
+  }
+
+  if (options.clis.length === 0) {
+    options.clis = DEFAULT_AI_CLIS;
+  }
+
+  return options;
+}
+
+function parseAiHooksUninstallArgs(args) {
+  const options = {
+    clis: []
+  };
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    switch (arg) {
+      case '--cli':
+        options.clis.push(requireValue(args, ++index, arg));
+        break;
+      case '--no-codex':
+        options.skipCodex = true;
+        break;
+      case '--codex':
+        options.codexCommand = requireValue(args, ++index, arg);
+        break;
+      case '--dry-run':
+        options.dryRun = true;
+        break;
+      case '--rpc-timeout-ms':
+        options.rpcTimeoutMs = parseNumber(requireValue(args, ++index, arg), arg);
+        break;
+      default:
+        throw usageError(`Unknown uninstall-ai-hooks option: ${arg}`);
     }
   }
 
@@ -619,6 +696,28 @@ function printCodexHookInstallResult(result) {
   }
 }
 
+function printCodexHookUninstallResult(result) {
+  const hookCommands = formatRemovedHookCommands(result);
+  if (result.dryRun) {
+    if (result.action === 'not-found') {
+      process.stdout.write(`No terminal-wait-notifier Codex Stop hook found in ${result.filePath || 'Codex config'}\n`);
+    } else {
+      process.stdout.write(`Would remove terminal-wait-notifier Codex Stop hook${hookCommands} from ${result.filePath || 'Codex config'}\n`);
+    }
+  } else if (result.action === 'not-found') {
+    process.stdout.write(`No terminal-wait-notifier Codex Stop hook found in ${result.filePath || 'Codex config'}\n`);
+  } else {
+    process.stdout.write(`terminal-wait-notifier Codex Stop hook${hookCommands} removed from ${result.filePath || 'Codex config'}\n`);
+  }
+
+  for (const warning of result.warnings || []) {
+    process.stdout.write(`Codex warning: ${warning}\n`);
+  }
+  for (const error of result.errors || []) {
+    process.stdout.write(`Codex error: ${error}\n`);
+  }
+}
+
 function printAiHooksInstallResults(results) {
   for (const result of results) {
     if (result.action === 'skipped') {
@@ -639,6 +738,39 @@ function printAiHooksInstallResults(results) {
       process.stdout.write(`${result.displayName} may ask you to review and trust this hook before it can run.\n`);
     }
   }
+}
+
+function printAiHooksUninstallResults(results) {
+  for (const result of results) {
+    if (result.action === 'skipped') {
+      process.stdout.write(`${result.displayName} hook skipped: ${result.reason}\n`);
+      continue;
+    }
+    if (result.action === 'failed') {
+      process.stdout.write(`${result.displayName} hook failed: ${result.error}\n`);
+      continue;
+    }
+    if (result.action === 'not-found') {
+      process.stdout.write(`${result.displayName} hook not found in ${result.filePath || 'settings'}\n`);
+      continue;
+    }
+
+    const hookCommands = formatRemovedHookCommands(result);
+    if (result.dryRun) {
+      process.stdout.write(`${result.displayName} hook${hookCommands} would be removed from ${result.filePath || 'settings'}\n`);
+    } else {
+      process.stdout.write(`${result.displayName} hook${hookCommands} removed from ${result.filePath || 'settings'}\n`);
+    }
+  }
+}
+
+function formatRemovedHookCommands(result) {
+  const commands = [
+    ...(result.removedHooks || []).map((hook) => hook && hook.command).filter(Boolean),
+    result.hookCommand
+  ].filter(Boolean);
+  const uniqueCommands = [...new Set(commands)];
+  return uniqueCommands.length > 0 ? ` (${uniqueCommands.join(', ')})` : '';
 }
 
 function actionVerb(action) {
@@ -689,8 +821,10 @@ Usage:
   twn uninstall-hook [zsh|bash|fish] [options]
   twn codex-hook [options]
   twn install-codex-hook [options]
+  twn uninstall-codex-hook [options]
   twn ai-hook --cli <name> [options]
   twn install-ai-hooks [options]
+  twn uninstall-ai-hooks [options]
   twn status [options]
   twn doctor [options]
 
@@ -736,12 +870,13 @@ Codex notification options:
   --no-webhook                    Disable webhook push
   --bell                          Also ring the terminal bell
 
-Codex install options:
-  --codex <command>               Codex executable for install-codex-hook
+Codex hook config options:
+  --codex <command>               Codex executable for install/uninstall-codex-hook
   --command <command>             Hook command Codex should run
   --timeout <seconds>             Hook timeout in seconds
   --status-message <text>         Status shown by Codex while the hook runs
   --dry-run                       Compute Codex hook changes without writing
+  --rpc-timeout-ms <n>            Codex app-server timeout for uninstall-codex-hook
 
 AI CLI hook options:
   --cli <name>                    AI CLI name: codex, qwen, gemini, claude, qoder
@@ -750,8 +885,8 @@ AI CLI hook options:
   --alert                         Show a stronger macOS alert popup
   --no-alert                      Disable alert popup
   --only-existing                 Only install hooks for CLIs with an existing settings directory
-  --no-codex                      Skip Codex when running install-ai-hooks
-  --dry-run                       Compute hook changes without writing
+  --no-codex                      Skip Codex when running install/uninstall-ai-hooks
+  --dry-run                       Compute hook changes or removals without writing
 
 Diagnostics options:
   --json                          Print machine-readable JSON
@@ -766,6 +901,7 @@ Examples:
   twn run -- npm install
   tw npm install   # after opening a new terminal
   twn install-ai-hooks
+  twn uninstall-ai-hooks --dry-run
   twn status
   twn doctor
   twn install-codex-hook
@@ -784,8 +920,10 @@ module.exports = {
   parseHookInstallArgs,
   parseCodexHookArgs,
   parseCodexHookInstallArgs,
+  parseCodexHookUninstallArgs,
   parseAiHookArgs,
   parseAiHooksInstallArgs,
+  parseAiHooksUninstallArgs,
   parseStatusArgs,
   helpText
 };
