@@ -350,6 +350,8 @@ twn install-ai-hooks --cli qoder
 
 JSON settings 会追加一个 managed command hook，不会删除已有 hook。Codex 仍然可能要求你在下一次打开 Codex 时 review/trust 新 hook。
 
+各 CLI 的 hook 事件、配置路径、命令和 fixture 契约见 [docs/ai-cli-hooks.md](docs/ai-cli-hooks.md)。
+
 ## 卸载和恢复
 
 所有卸载命令都只移除 terminal-wait-notifier 写入的 hook，不会删除配置文件、配置目录或用户自己的其他 hooks。正式执行前可以先用 `--dry-run` 预览。

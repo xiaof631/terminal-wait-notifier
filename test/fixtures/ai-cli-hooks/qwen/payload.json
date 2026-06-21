@@ -1,0 +1,8 @@
+{
+  "hook_event_name": "Stop",
+  "cwd": "/tmp/qwen-project",
+  "prompt": "run test suite",
+  "last_assistant_message": "Qwen finished the requested checks.",
+  "session_id": "qwen-session-1",
+  "transcript_path": "/tmp/qwen-transcript.jsonl"
+}

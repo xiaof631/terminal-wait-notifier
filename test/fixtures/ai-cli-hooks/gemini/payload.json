@@ -1,0 +1,8 @@
+{
+  "hook_event_name": "AfterAgent",
+  "cwd": "/tmp/gemini-project",
+  "prompt": "summarize the diff",
+  "prompt_response": "Gemini summary is ready.",
+  "session_id": "gemini-session-1",
+  "timestamp": "2026-06-21T08:00:00.000Z"
+}

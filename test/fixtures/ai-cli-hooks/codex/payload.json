@@ -1,0 +1,8 @@
+{
+  "eventName": "stop",
+  "cwd": "/tmp/codex-project",
+  "last_assistant_message": "All Codex edits are complete. Tests passed.",
+  "sessionId": "codex-session-1",
+  "turnId": "codex-turn-1",
+  "transcript_path": "/tmp/codex-transcript.jsonl"
+}

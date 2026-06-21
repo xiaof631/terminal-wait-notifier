@@ -1,0 +1,6 @@
+{
+  "hook_event_name": "Stop",
+  "cwd": "/tmp/qoder-project",
+  "message": "Qoder completed the implementation pass.",
+  "session_id": "qoder-session-1"
+}

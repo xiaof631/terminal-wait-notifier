@@ -1,0 +1,23 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "existing-claude-hook"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "twn ai-hook --cli claude"
+          }
+        ],
+        "matcher": ""
+      }
+    ]
+  }
+}

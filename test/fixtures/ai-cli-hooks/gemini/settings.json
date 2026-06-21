@@ -1,0 +1,19 @@
+{
+  "ui": {
+    "theme": "dark"
+  },
+  "hooks": {
+    "AfterAgent": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "existing-gemini-hook",
+            "name": "keep"
+          }
+        ]
+      }
+    ]
+  }
+}

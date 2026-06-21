@@ -1,0 +1,16 @@
+{
+  "model": "qwen-plus",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "existing-qwen-hook",
+            "name": "keep"
+          }
+        ]
+      }
+    ]
+  }
+}

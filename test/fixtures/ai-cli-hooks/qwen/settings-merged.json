@@ -1,0 +1,26 @@
+{
+  "model": "qwen-plus",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "existing-qwen-hook",
+            "name": "keep"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "twn ai-hook --cli qwen",
+            "name": "terminal-wait-notifier",
+            "description": "Notify when Qwen Code finishes a turn"
+          }
+        ]
+      }
+    ]
+  }
+}

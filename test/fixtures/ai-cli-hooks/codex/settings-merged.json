@@ -1,0 +1,23 @@
+[
+  {
+    "hooks": [
+      {
+        "type": "command",
+        "command": "existing-codex-hook",
+        "async": false,
+        "timeout": 3
+      }
+    ]
+  },
+  {
+    "hooks": [
+      {
+        "type": "command",
+        "command": "twn codex-hook",
+        "async": false,
+        "timeout": 5,
+        "statusMessage": "Notify Codex completion"
+      }
+    ]
+  }
+]

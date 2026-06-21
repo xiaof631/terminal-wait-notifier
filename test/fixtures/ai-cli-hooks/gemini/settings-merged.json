@@ -1,0 +1,29 @@
+{
+  "ui": {
+    "theme": "dark"
+  },
+  "hooks": {
+    "AfterAgent": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "existing-gemini-hook",
+            "name": "keep"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "twn ai-hook --cli gemini",
+            "name": "terminal-wait-notifier"
+          }
+        ],
+        "matcher": "*"
+      }
+    ]
+  }
+}

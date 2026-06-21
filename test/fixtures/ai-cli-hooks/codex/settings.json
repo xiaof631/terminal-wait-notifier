@@ -1,0 +1,41 @@
+{
+  "layers": [
+    {
+      "name": {
+        "type": "project",
+        "path": "/tmp/project/.codex/config.toml"
+      },
+      "config": {
+        "hooks": {
+          "Stop": [
+            {
+              "hooks": []
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": {
+        "type": "user",
+        "path": "/Users/test/.codex/config.toml"
+      },
+      "config": {
+        "hooks": {
+          "Stop": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "existing-codex-hook",
+                  "async": false,
+                  "timeout": 3
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
