@@ -1,11 +1,38 @@
 # terminal-wait-notifier
 
-一个可以全局安装的终端提醒工具，用来处理两类场景：
+面向 AI CLI 工作流的终端等待管理器。
 
-- 终端命令执行完成后提醒你结果。
-- 命令输出里出现确认、输入、密码、继续执行等提示时提醒你回来处理。
+它解决的不是“怎么发一条通知”，而是一个更具体的问题：你不想一直盯着终端，但又需要知道命令什么时候结束、什么时候失败、什么时候其实卡在确认输入、什么时候 AI CLI 已经完成一轮任务。
 
-它不绑定具体命令，适合 `npm install`、`pnpm build`、`terraform apply`、`ssh`、部署脚本、数据库迁移、AI CLI 等任何需要等待的终端操作。
+核心场景：
+
+| 场景 | 能力 |
+| --- | --- |
+| 普通命令结束或失败 | 安装后照常运行命令，shell hook 自动提醒 |
+| 命令卡在确认/输入 | 用 `tw <command>` 或 `twn run -- <command>` 读取输出并提醒 |
+| AI CLI 一轮任务结束 | 自动安装 Codex / Qwen Code / Gemini CLI / Claude Code / Qoder CLI hook |
+| 系统通知不明显 | 支持声音、终端铃声、macOS alert 强弹窗、webhook |
+
+它适合 `npm install`、`pnpm build`、`terraform apply`、`ssh`、部署脚本、数据库迁移，以及 Codex / Qwen / Gemini / Claude / Qoder 等 AI CLI 工作流。
+
+## 和已有工具的区别
+
+已有项目已经覆盖了很多通知能力，本项目的重点是把“终端等待”这个工作流做完整。
+
+| 项目 | 更偏向 | terminal-wait-notifier 的差异 |
+| --- | --- | --- |
+| [ntfy](https://github.com/dschep/ntfy) | 通用命令完成通知和多后端推送 | 增加等待确认/输入检测，并内置多 AI CLI hook |
+| [noti](https://github.com/variadico/noti) | 进程/命令完成通知 | 聚焦 AI CLI 工作流和卡输入提醒；仓库当前已 archived |
+| [undistract-me](https://github.com/jml/undistract-me) | 长命令完成提醒 | 覆盖 AI CLI 回合结束、webhook、macOS alert 等现代工作流 |
+| [terminal-notifier](https://github.com/julienXX/terminal-notifier) / [alerter](https://github.com/vjeantet/alerter) | macOS 通知/alert 底层工具 | 本项目是终端等待工作流工具，通知只是输出方式之一 |
+| [shelldone](https://github.com/nareshnavinash/shelldone) | pure bash 的长命令提醒和多渠道通知 | 本项目提供 npm 安装体验，并把等待输入检测和 AI CLI hook 作为核心路径 |
+| [echook](https://github.com/ChanMeng666/echook) | AI hook 音频、TTS、主题和更重的 hook 系统 | 本项目保持轻量，不做 TTS/音频主题，重点是终端命令 + AI CLI 的等待管理 |
+
+## 不做什么
+
+- 不做完整通知平台；只提供桌面通知、声音、alert、终端铃声和 webhook 这些实用出口。
+- 不做 AI agent 远程控制、聊天桥接或会话管理。
+- 不自动回答确认问题，也不读取隐藏密码；只提醒你回来处理。
 
 ## 是否必须包裹命令？
 

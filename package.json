@@ -1,7 +1,7 @@
 {
   "name": "terminal-wait-notifier",
   "version": "0.1.0",
-  "description": "NPM-installable terminal reminders for long-running commands, confirmation prompts, and completion push notifications.",
+  "description": "Terminal wait manager for commands and AI CLI workflows: get notified when tasks finish, fail, or wait for input.",
   "license": "MIT",
   "author": "xiaof631",
   "repository": {
@@ -18,7 +18,10 @@
     "cli",
     "webhook",
     "shell",
-    "automation"
+    "automation",
+    "ai-cli",
+    "codex",
+    "claude-code"
   ],
   "type": "commonjs",
   "bin": {
