@@ -15,6 +15,8 @@
 
 它适合 `npm install`、`pnpm build`、`terraform apply`、`ssh`、部署脚本、数据库迁移，以及 Codex / Qwen / Gemini / Claude / Qoder 等 AI CLI 工作流。
 
+可复制 demo、录屏清单和发布文案见 [Demo](#demo) 与 [docs/demo-and-launch.md](docs/demo-and-launch.md)。
+
 ## 和已有工具的区别
 
 已有项目已经覆盖了很多通知能力，本项目的重点是把“终端等待”这个工作流做完整。
@@ -43,17 +45,35 @@
 
 推荐用法是：自动安装的 hook 负责所有顶层命令的完成提醒；遇到可能卡在确认输入的命令时，用 `tw` 执行。
 
-## 等待输入检测 demo
+## Demo
 
-很多通知工具只会在命令结束时提醒，但真实的等待经常发生在命令还没结束的时候，例如 `terraform apply` 等你输入 `yes`、`npm create` 问你是否安装包、`ssh` 问你是否信任 host key。
+下面四个命令覆盖本项目和普通通知工具拉开差异的核心场景。完整录屏清单和 Twitter/X 文案见 [docs/demo-and-launch.md](docs/demo-and-launch.md)。
 
-可以用内置 demo 直接试：
+命令完成：
+
+```bash
+twn run --title "Build" -- node examples/slow-success.js 2
+```
+
+命令卡在确认/输入：
 
 ```bash
 twn run --title "Confirm demo" --prompt-throttle-seconds 10 -- node examples/wait-for-confirm.js
 ```
 
 当输出出现 `Deploy to production? [y/N]` 时，通知文案会包含 detector 名称和截断后的 sample，例如 `yes_no` 和触发检测的提示片段。常见 detector 包括 `yes_no`、`terraform_approval`、`password_prompt`、`selection_prompt`、`english_confirmation`、`chinese_confirmation`。
+
+AI CLI 回合结束，可以用伪造 hook payload 先看通知效果：
+
+```bash
+echo '{"hook_event_name":"Stop","prompt_response":"AI CLI task done","cwd":"/tmp/demo"}' | twn ai-hook --cli qwen --no-webhook
+```
+
+macOS alert 强提示：
+
+```bash
+twn notify "Build finished" --alert --sound Glass --no-webhook
+```
 
 这项能力只读取命令输出，不读取隐藏输入，也不会自动替你回答。检测可能误报时，可以单次关闭：
 
