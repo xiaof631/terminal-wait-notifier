@@ -22,7 +22,7 @@
   ],
   "type": "commonjs",
   "bin": {
-    "twn": "./bin/twn.js"
+    "twn": "bin/twn.js"
   },
   "files": [
     "bin",
