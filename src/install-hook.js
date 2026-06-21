@@ -7,7 +7,7 @@ const BLOCK_END = '# <<< terminal-wait-notifier <<<';
 
 function installShellHook(shell, options = {}) {
   const normalizedShell = normalizeShell(shell);
-  const rcFile = resolveRcFile(normalizedShell, options.rcFile);
+  const rcFile = resolveRcFile(normalizedShell, options.rcFile, options);
   const block = renderManagedHookBlock(normalizedShell, options);
   const existing = readIfExists(rcFile);
   const result = upsertManagedBlock(existing, block);
@@ -30,7 +30,7 @@ function installShellHook(shell, options = {}) {
 
 function uninstallShellHook(shell, options = {}) {
   const normalizedShell = normalizeShell(shell);
-  const rcFile = resolveRcFile(normalizedShell, options.rcFile);
+  const rcFile = resolveRcFile(normalizedShell, options.rcFile, options);
 
   if (!fs.existsSync(rcFile)) {
     return {
@@ -105,15 +105,18 @@ function renderAlertFlag(alert) {
   return '';
 }
 
-function resolveRcFile(shell, rcFile) {
-  if (rcFile) return expandHome(rcFile);
+function resolveRcFile(shell, rcFile, options = {}) {
+  const home = options.homeDir || os.homedir();
+  const env = options.env || process.env;
+  const platform = options.platform || process.platform;
 
-  const home = os.homedir();
+  if (rcFile) return expandHome(rcFile, home);
+
   if (shell === 'zsh') {
-    return path.join(process.env.ZDOTDIR || home, '.zshrc');
+    return path.join(env.ZDOTDIR || home, '.zshrc');
   }
   if (shell === 'bash') {
-    return process.platform === 'darwin'
+    return platform === 'darwin'
       ? path.join(home, '.bash_profile')
       : path.join(home, '.bashrc');
   }
@@ -171,9 +174,9 @@ function readIfExists(file) {
   return fs.readFileSync(file, 'utf8');
 }
 
-function expandHome(file) {
-  if (file === '~') return os.homedir();
-  if (file.startsWith('~/')) return path.join(os.homedir(), file.slice(2));
+function expandHome(file, homeDir = os.homedir()) {
+  if (file === '~') return homeDir;
+  if (file.startsWith('~/')) return path.join(homeDir, file.slice(2));
   return path.resolve(file);
 }
 

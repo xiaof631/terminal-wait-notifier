@@ -6,6 +6,7 @@ const { notifyCodexHook } = require('./codex-notify');
 const { installCodexHook } = require('./codex-install-hook');
 const { notifyAiCliHook } = require('./ai-hook-notify');
 const { installAiCliHooks, DEFAULT_AI_CLIS } = require('./ai-cli-integrations');
+const { collectStatus, collectDoctor, formatStatus, formatDoctor } = require('./status');
 
 const BUILTIN_COMMANDS = new Set([
   'run',
@@ -17,6 +18,8 @@ const BUILTIN_COMMANDS = new Set([
   'install-codex-hook',
   'ai-hook',
   'install-ai-hooks',
+  'status',
+  'doctor',
   'help',
   'version'
 ]);
@@ -114,6 +117,20 @@ async function main(argv) {
     const options = parseAiHooksInstallArgs(args);
     const results = await installAiCliHooks(options);
     printAiHooksInstallResults(results);
+    return;
+  }
+
+  if (command === 'status') {
+    const options = parseStatusArgs(args);
+    const status = await collectStatus(options);
+    process.stdout.write(options.json ? `${JSON.stringify(status, null, 2)}\n` : formatStatus(status));
+    return;
+  }
+
+  if (command === 'doctor') {
+    const options = parseStatusArgs(args);
+    const doctor = await collectDoctor(options);
+    process.stdout.write(options.json ? `${JSON.stringify(doctor, null, 2)}\n` : formatDoctor(doctor));
     return;
   }
 
@@ -514,6 +531,44 @@ function parseAiHooksInstallArgs(args) {
   return options;
 }
 
+function parseStatusArgs(args) {
+  const options = {
+    clis: []
+  };
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    switch (arg) {
+      case '--json':
+        options.json = true;
+        break;
+      case '--home':
+        options.homeDir = requireValue(args, ++index, arg);
+        break;
+      case '--codex':
+        options.codexCommand = requireValue(args, ++index, arg);
+        break;
+      case '--no-codex':
+        options.skipCodex = true;
+        break;
+      case '--cli':
+        options.clis.push(requireValue(args, ++index, arg));
+        break;
+      case '--rpc-timeout-ms':
+        options.rpcTimeoutMs = parseNumber(requireValue(args, ++index, arg), arg);
+        break;
+      default:
+        throw usageError(`Unknown status option: ${arg}`);
+    }
+  }
+
+  if (options.clis.length === 0) {
+    delete options.clis;
+  }
+
+  return options;
+}
+
 function printHookInstallResult(result) {
   if (result.dryRun) {
     process.stdout.write(`Would ${result.hadBlock ? 'update' : 'install'} terminal-wait-notifier ${result.shell} hook in ${result.rcFile}:\n\n${result.block}\n`);
@@ -636,6 +691,8 @@ Usage:
   twn install-codex-hook [options]
   twn ai-hook --cli <name> [options]
   twn install-ai-hooks [options]
+  twn status [options]
+  twn doctor [options]
 
 Run options:
   --title <text>                  Notification title
@@ -696,11 +753,21 @@ AI CLI hook options:
   --no-codex                      Skip Codex when running install-ai-hooks
   --dry-run                       Compute hook changes without writing
 
+Diagnostics options:
+  --json                          Print machine-readable JSON
+  --home <path>                   Check settings under a custom home directory
+  --codex <command>               Codex executable for status/doctor
+  --no-codex                      Skip Codex app-server diagnostics
+  --cli <name>                    Limit AI CLI checks: qwen, gemini, claude, qoder
+  --rpc-timeout-ms <n>            Codex app-server read timeout
+
 Examples:
   npm install -g terminal-wait-notifier
   twn run -- npm install
   tw npm install   # after opening a new terminal
   twn install-ai-hooks
+  twn status
+  twn doctor
   twn install-codex-hook
   twn run --shell -- "npm test && npm run build"
   TWN_WEBHOOK_URL=https://example.com/hook twn run -- terraform apply
@@ -719,5 +786,6 @@ module.exports = {
   parseCodexHookInstallArgs,
   parseAiHookArgs,
   parseAiHooksInstallArgs,
+  parseStatusArgs,
   helpText
 };

@@ -5,6 +5,7 @@ const {
   parseAiHooksInstallArgs,
   parseCodexHookArgs,
   parseCodexHookInstallArgs,
+  parseStatusArgs,
   parseRunArgs
 } = require('../src/cli');
 
@@ -50,4 +51,26 @@ test('parses alert popup options', () => {
 
   assert.equal(parseCodexHookArgs(['--no-alert']).alert, false);
   assert.equal(parseAiHookArgs(['--cli', 'qwen', '--alert']).alert, true);
+});
+
+test('parses diagnostics options', () => {
+  assert.deepEqual(parseStatusArgs([
+    '--json',
+    '--home',
+    '/tmp/twn-home',
+    '--codex',
+    'codex-nightly',
+    '--cli',
+    'qwen',
+    '--no-codex',
+    '--rpc-timeout-ms',
+    '100'
+  ]), {
+    json: true,
+    homeDir: '/tmp/twn-home',
+    codexCommand: 'codex-nightly',
+    clis: ['qwen'],
+    skipCodex: true,
+    rpcTimeoutMs: 100
+  });
 });

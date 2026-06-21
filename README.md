@@ -104,6 +104,20 @@ npm link
 twn --help
 ```
 
+## 诊断安装状态
+
+如果通知没有出现、AI CLI hook 没触发，或者想确认安装脚本到底检查了哪些文件，可以先跑只读诊断：
+
+```bash
+twn status
+twn status --json
+twn doctor
+```
+
+`twn status` 会列出 shell hook、Codex hook、Qwen Code、Gemini CLI、Claude Code、Qoder CLI 的安装状态，并显示检查过的配置路径。`twn status --json` 适合脚本或 issue 里贴诊断结果。`twn doctor` 会给出下一步建议，例如重开终端、trust Codex hook、检查 macOS 通知权限、设置 `TWN_WEBHOOK_URL`。
+
+这些命令默认只读，不会修改 shell rc、Codex 配置或 AI CLI settings。
+
 ## 包装任意命令
 
 ```bash
