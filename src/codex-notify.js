@@ -2,6 +2,7 @@ const { sendNotification } = require('./notify');
 
 const DEFAULT_CODEX_TITLE = 'Codex';
 const DEFAULT_CODEX_MESSAGE = 'Codex task completed';
+const DEFAULT_CODEX_SOUND = 'Glass';
 
 async function notifyCodexHook(options = {}) {
   const stdin = options.stdin || process.stdin;
@@ -14,7 +15,10 @@ async function notifyCodexHook(options = {}) {
   });
   const notifier = options.sendNotification || sendNotification;
 
-  await notifier(event, options.notifyOptions || {});
+  await notifier(event, {
+    defaultSound: DEFAULT_CODEX_SOUND,
+    ...(options.notifyOptions || {})
+  });
   return event;
 }
 
@@ -105,6 +109,7 @@ function truncate(value, maxLength) {
 module.exports = {
   DEFAULT_CODEX_MESSAGE,
   DEFAULT_CODEX_TITLE,
+  DEFAULT_CODEX_SOUND,
   notifyCodexHook,
   buildCodexEvent,
   summarizeCodexPayload,

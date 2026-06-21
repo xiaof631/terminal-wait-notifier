@@ -3,7 +3,8 @@ function renderShellHook(shell, options = {}) {
   const notifyFlags = [
     options.desktop === false ? '--no-desktop' : '',
     options.webhook === false ? '--no-webhook' : '',
-    options.bell === true ? '--bell' : ''
+    options.bell === true ? '--bell' : '',
+    renderSoundFlag(options.sound)
   ].filter(Boolean).join(' ');
   const runFlags = [`--min-seconds ${minSeconds}`, notifyFlags].filter(Boolean).join(' ');
 
@@ -129,6 +130,20 @@ function __twn_postexec --on-event fish_postexec
   set -e TWN_HOOK_STARTED
 end
 `;
+}
+
+function renderSoundFlag(sound) {
+  if (sound === false) return '--no-sound';
+  if (typeof sound === 'string' && sound.trim()) {
+    return `--sound ${shellQuote(sound)}`;
+  }
+  return '';
+}
+
+function shellQuote(value) {
+  const text = String(value);
+  if (/^[A-Za-z0-9_./:=@+-]+$/.test(text)) return text;
+  return `'${text.replace(/'/g, "'\\''")}'`;
 }
 
 module.exports = {

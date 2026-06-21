@@ -83,10 +83,19 @@ function renderHookCommand(shell, options = {}) {
     `--min-seconds ${Number.isFinite(options.minSeconds) ? options.minSeconds : 0}`,
     options.desktop === false ? '--no-desktop' : '',
     options.webhook === false ? '--no-webhook' : '',
-    options.bell === true ? '--bell' : ''
+    options.bell === true ? '--bell' : '',
+    renderSoundFlag(options.sound)
   ].filter(Boolean);
 
   return ['twn', 'hook', shell, ...flags].join(' ');
+}
+
+function renderSoundFlag(sound) {
+  if (sound === false) return '--no-sound';
+  if (typeof sound === 'string' && sound.trim()) {
+    return `--sound ${shellQuote(sound)}`;
+  }
+  return '';
 }
 
 function resolveRcFile(shell, rcFile) {
@@ -165,6 +174,12 @@ function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function shellQuote(value) {
+  const text = String(value);
+  if (/^[A-Za-z0-9_./:=@+-]+$/.test(text)) return text;
+  return `'${text.replace(/'/g, "'\\''")}'`;
+}
+
 module.exports = {
   BLOCK_START,
   BLOCK_END,
@@ -172,6 +187,7 @@ module.exports = {
   uninstallShellHook,
   renderManagedHookBlock,
   renderHookCommand,
+  renderSoundFlag,
   resolveRcFile,
   normalizeShell,
   upsertManagedBlock,

@@ -13,6 +13,7 @@ const AI_CLI_LABELS = {
   qoder: 'Qoder CLI',
   qwen: 'Qwen Code'
 };
+const DEFAULT_AI_HOOK_SOUND = 'Glass';
 
 async function notifyAiCliHook(options = {}) {
   const cli = normalizeCliName(options.cli);
@@ -26,7 +27,10 @@ async function notifyAiCliHook(options = {}) {
   });
   const notifier = options.sendNotification || sendNotification;
 
-  await notifier(event, options.notifyOptions || {});
+  await notifier(event, {
+    defaultSound: DEFAULT_AI_HOOK_SOUND,
+    ...(options.notifyOptions || {})
+  });
   return event;
 }
 
@@ -112,6 +116,7 @@ function pickString(object, keys) {
 
 module.exports = {
   AI_CLI_LABELS,
+  DEFAULT_AI_HOOK_SOUND,
   notifyAiCliHook,
   buildAiCliEvent,
   summarizeAiCliPayload,

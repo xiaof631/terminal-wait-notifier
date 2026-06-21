@@ -47,4 +47,5 @@ test('notifyCodexHook sends a normalized notification', async () => {
   assert.equal(event.message, 'All set');
   assert.equal(calls.length, 1);
   assert.equal(calls[0][0].cwd, '/tmp/codex');
+  assert.equal(calls[0][1].defaultSound, 'Glass');
 });

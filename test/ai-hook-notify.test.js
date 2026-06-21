@@ -54,4 +54,5 @@ test('notifyAiCliHook sends a normalized notification', async () => {
   assert.equal(calls.length, 1);
   assert.equal(calls[0][0].title, 'Gemini CLI');
   assert.equal(calls[0][0].cwd, '/tmp/gemini');
+  assert.equal(calls[0][1].defaultSound, 'Glass');
 });

@@ -153,6 +153,12 @@ function parseRunArgs(args) {
         case '--webhook-url':
           options.webhookUrl = requireValue(args, ++index, arg);
           break;
+        case '--sound':
+          options.sound = requireValue(args, ++index, arg);
+          break;
+        case '--no-sound':
+          options.sound = false;
+          break;
         case '--shell':
           options.shell = true;
           break;
@@ -205,6 +211,12 @@ function parseNotifyArgs(args) {
         case '--webhook-url':
           options.webhookUrl = requireValue(args, ++index, arg);
           break;
+        case '--sound':
+          options.sound = requireValue(args, ++index, arg);
+          break;
+        case '--no-sound':
+          options.sound = false;
+          break;
         case '--no-desktop':
           options.desktop = false;
           break;
@@ -243,6 +255,12 @@ function parseHookArgs(args) {
         break;
       case '--bell':
         options.bell = true;
+        break;
+      case '--sound':
+        options.sound = requireValue(args, ++index, arg);
+        break;
+      case '--no-sound':
+        options.sound = false;
         break;
       default:
         throw usageError(`Unknown hook option: ${arg}`);
@@ -294,6 +312,14 @@ function parseHookInstallArgs(args, mode = {}) {
         if (mode.uninstall) throw usageError(`${arg} is only supported by install-hook`);
         options.bell = true;
         break;
+      case '--sound':
+        if (mode.uninstall) throw usageError(`${arg} is only supported by install-hook`);
+        options.sound = requireValue(args, ++index, arg);
+        break;
+      case '--no-sound':
+        if (mode.uninstall) throw usageError(`${arg} is only supported by install-hook`);
+        options.sound = false;
+        break;
       default:
         throw usageError(`Unknown ${mode.uninstall ? 'uninstall-hook' : 'install-hook'} option: ${arg}`);
     }
@@ -320,6 +346,12 @@ function parseCodexHookArgs(args) {
         break;
       case '--webhook-url':
         options.webhookUrl = requireValue(args, ++index, arg);
+        break;
+      case '--sound':
+        options.sound = requireValue(args, ++index, arg);
+        break;
+      case '--no-sound':
+        options.sound = false;
         break;
       case '--no-desktop':
         options.desktop = false;
@@ -384,6 +416,12 @@ function parseAiHookArgs(args) {
         break;
       case '--webhook-url':
         options.webhookUrl = requireValue(args, ++index, arg);
+        break;
+      case '--sound':
+        options.sound = requireValue(args, ++index, arg);
+        break;
+      case '--no-sound':
+        options.sound = false;
         break;
       case '--no-desktop':
         options.desktop = false;
@@ -568,6 +606,8 @@ Run options:
   --min-seconds <n>               Notify on completion only after n seconds
   --prompt-throttle-seconds <n>   Minimum seconds between prompt reminders
   --webhook-url <url>             Push notification webhook endpoint
+  --sound <name>                  Play a notification sound, e.g. Glass or Ping
+  --no-sound                      Disable notification sound
   --shell                         Run the command through the user's shell
   --no-prompt                     Disable waiting-confirmation detection
   --no-desktop                    Disable desktop notification
@@ -579,6 +619,8 @@ Hook install options:
   --rc-file <path>                Shell config file to edit
   --min-seconds <n>               Notify on completion only after n seconds
   --dry-run                       Print the managed block without writing
+  --sound <name>                  Play a notification sound from the hook
+  --no-sound                      Disable notification sound from the hook
   --no-desktop                    Disable desktop notification in the hook
   --no-webhook                    Disable webhook push in the hook
   --bell                          Also ring the terminal bell from the hook
@@ -587,6 +629,8 @@ Codex notification options:
   --title <text>                  Notification title for codex-hook
   --message <text>                Override Codex hook notification message
   --webhook-url <url>             Push notification webhook endpoint
+  --sound <name>                  Play a notification sound, default Glass
+  --no-sound                      Disable notification sound
   --no-desktop                    Disable desktop notification
   --no-webhook                    Disable webhook push
   --bell                          Also ring the terminal bell
@@ -600,6 +644,8 @@ Codex install options:
 
 AI CLI hook options:
   --cli <name>                    AI CLI name: codex, qwen, gemini, claude, qoder
+  --sound <name>                  Play a notification sound, default Glass
+  --no-sound                      Disable notification sound
   --only-existing                 Only install hooks for CLIs with an existing settings directory
   --no-codex                      Skip Codex when running install-ai-hooks
   --dry-run                       Compute hook changes without writing

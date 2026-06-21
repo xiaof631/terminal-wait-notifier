@@ -39,6 +39,14 @@ test('renders hook command flags', () => {
     renderHookCommand('bash', { minSeconds: 7, desktop: false, webhook: false }),
     'twn hook bash --min-seconds 7 --no-desktop --no-webhook'
   );
+  assert.equal(
+    renderHookCommand('zsh', { sound: 'Ping' }),
+    'twn hook zsh --min-seconds 0 --sound Ping'
+  );
+  assert.equal(
+    renderHookCommand('zsh', { sound: false }),
+    'twn hook zsh --min-seconds 0 --no-sound'
+  );
 });
 
 test('upserts managed block without duplicating it', () => {

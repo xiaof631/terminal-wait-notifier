@@ -1,5 +1,6 @@
 const { spawn } = require('node:child_process');
 const os = require('node:os');
+const path = require('node:path');
 const { buildNotifyOptions } = require('./config');
 
 async function sendNotification(event, rawOptions = {}) {
@@ -8,6 +9,10 @@ async function sendNotification(event, rawOptions = {}) {
 
   if (options.bell) {
     process.stderr.write('\u0007');
+  }
+
+  if (options.sound) {
+    playNotificationSound(options.sound);
   }
 
   if (options.desktop) {
@@ -73,6 +78,40 @@ function sendDesktopNotification(event) {
   }
 }
 
+function playNotificationSound(soundName) {
+  const sound = String(soundName || '').trim();
+  if (!sound) return;
+
+  if (process.platform === 'darwin') {
+    detachedSpawn('afplay', [darwinSoundPath(sound)]);
+    return;
+  }
+
+  if (process.platform === 'linux') {
+    detachedSpawn('canberra-gtk-play', ['-i', sound === 'Glass' ? 'complete' : sound]);
+    return;
+  }
+
+  if (process.platform === 'win32') {
+    detachedSpawn('powershell.exe', [
+      '-NoProfile',
+      '-ExecutionPolicy',
+      'Bypass',
+      '-Command',
+      '[console]::beep(880,200)'
+    ]);
+  }
+}
+
+function darwinSoundPath(soundName) {
+  const value = String(soundName || '').trim();
+  if (path.isAbsolute(value)) return value;
+
+  const basename = path.basename(value).replace(/\.(aiff|aif|caf|wav|mp3)$/i, '');
+  const safeName = /^[A-Za-z0-9 _-]+$/.test(basename) ? basename : 'Glass';
+  return path.join('/System/Library/Sounds', `${safeName}.aiff`);
+}
+
 function detachedSpawn(command, args) {
   const child = spawn(command, args, {
     detached: true,
@@ -135,5 +174,7 @@ module.exports = {
   sendNotification,
   normalizeEvent,
   sendWebhook,
-  sendDesktopNotification
+  sendDesktopNotification,
+  playNotificationSound,
+  darwinSoundPath
 };

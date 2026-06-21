@@ -119,6 +119,25 @@ export TWN_WEBHOOK_HEADERS='{"Authorization":"Bearer token"}'
 - Linux: `notify-send`
 - Windows: PowerShell 通知气泡
 
+Codex 和 AI CLI hook 默认会额外播放一次系统声音（macOS 默认 `Glass`）。普通命令默认不播放声音，避免 shell hook 在每条命令结束时都出声。
+
+手动测试声音：
+
+```bash
+twn notify "声音测试" --sound Glass --no-webhook
+```
+
+也可以指定声音，或关闭声音：
+
+```bash
+twn run --sound Ping -- npm test
+twn codex-hook --no-sound
+```
+
+macOS 上声音使用 `/System/Library/Sounds/<name>.aiff` 播放。常见名字包括 `Glass`、`Ping`、`Pop`、`Submarine`、`Tink`。
+
+如果有声音但没有弹窗，通常是系统通知权限、专注模式或通知样式问题。到 macOS 系统设置的“通知”里检查 `osascript`、脚本编辑器或当前终端相关通知是否允许显示横幅。
+
 只使用 webhook：
 
 ```bash
@@ -279,6 +298,7 @@ twn notify "手动提醒测试"
 | `TWN_DESKTOP=0` | 关闭桌面提醒 |
 | `TWN_WEBHOOK=0` | 关闭 webhook |
 | `TWN_BELL=1` | 同时响铃 |
+| `TWN_SOUND` | 播放通知声音，例如 `Glass`、`Ping`；设为 `0` 关闭 |
 | `TWN_MIN_SECONDS` | 完成提醒最短耗时阈值 |
 | `TWN_PROMPT_DETECTION=0` | 关闭确认等待检测 |
 | `TWN_PROMPT_THROTTLE_SECONDS` | 确认提醒节流时间，默认 60 |

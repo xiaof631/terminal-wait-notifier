@@ -5,7 +5,8 @@ function buildNotifyOptions(options = {}) {
     webhookUrl: options.webhookUrl || process.env.TWN_WEBHOOK_URL,
     webhookHeaders: parseHeaders(process.env.TWN_WEBHOOK_HEADERS),
     webhookTimeoutMs: parsePositiveInt(process.env.TWN_WEBHOOK_TIMEOUT_MS, 5000),
-    bell: options.bell !== undefined ? options.bell : envEnabled('TWN_BELL', false)
+    bell: options.bell !== undefined ? options.bell : envEnabled('TWN_BELL', false),
+    sound: parseSoundOption(pickSoundOption(options), false)
   };
 }
 
@@ -50,10 +51,32 @@ function parseHeaders(raw) {
   }
 }
 
+function pickSoundOption(options = {}) {
+  if (options.sound !== undefined) return options.sound;
+  if (process.env.TWN_SOUND !== undefined) return process.env.TWN_SOUND;
+  return options.defaultSound;
+}
+
+function parseSoundOption(value, fallback) {
+  if (value === undefined || value === null || value === '') return fallback;
+  if (typeof value === 'boolean') return value ? 'Glass' : false;
+
+  const normalized = String(value).trim();
+  if (!normalized) return fallback;
+  if (['0', 'false', 'no', 'off', 'none', 'silent'].includes(normalized.toLowerCase())) {
+    return false;
+  }
+  if (['1', 'true', 'yes', 'on'].includes(normalized.toLowerCase())) {
+    return 'Glass';
+  }
+  return normalized;
+}
+
 module.exports = {
   buildNotifyOptions,
   buildRunOptions,
   envEnabled,
   parsePositiveInt,
-  parseHeaders
+  parseHeaders,
+  parseSoundOption
 };

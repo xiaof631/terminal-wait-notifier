@@ -1,8 +1,11 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const {
+  parseAiHookArgs,
   parseAiHooksInstallArgs,
-  parseCodexHookInstallArgs
+  parseCodexHookArgs,
+  parseCodexHookInstallArgs,
+  parseRunArgs
 } = require('../src/cli');
 
 test('parses Codex hook install dry-run option', () => {
@@ -27,4 +30,14 @@ test('parses AI hooks dry-run option', () => {
     clis: ['qwen'],
     dryRun: true
   });
+});
+
+test('parses notification sound options', () => {
+  assert.deepEqual(parseRunArgs(['--sound', 'Ping', '--', 'npm', 'test']), {
+    commandArgs: ['npm', 'test'],
+    options: { sound: 'Ping' }
+  });
+
+  assert.equal(parseCodexHookArgs(['--no-sound']).sound, false);
+  assert.equal(parseAiHookArgs(['--cli', 'qwen', '--sound', 'Glass']).sound, 'Glass');
 });
