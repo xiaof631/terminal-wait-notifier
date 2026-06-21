@@ -1,0 +1,42 @@
+{
+  "name": "terminal-wait-notifier",
+  "version": "0.1.0",
+  "description": "NPM-installable terminal reminders for long-running commands, confirmation prompts, and completion push notifications.",
+  "license": "MIT",
+  "author": "xiaof631",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xiaof631/terminal-wait-notifier.git"
+  },
+  "bugs": {
+    "url": "https://github.com/xiaof631/terminal-wait-notifier/issues"
+  },
+  "homepage": "https://github.com/xiaof631/terminal-wait-notifier#readme",
+  "keywords": [
+    "terminal",
+    "notification",
+    "cli",
+    "webhook",
+    "shell",
+    "automation"
+  ],
+  "type": "commonjs",
+  "bin": {
+    "twn": "./bin/twn.js"
+  },
+  "files": [
+    "bin",
+    "examples",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "smoke": "node ./bin/twn.js --help",
+    "pack:check": "npm --cache ./.npm-cache pack --dry-run"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
