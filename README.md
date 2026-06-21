@@ -22,6 +22,21 @@
 npm install -g terminal-wait-notifier
 ```
 
+也可以直接从源码安装，不需要等 npm 发布：
+
+```bash
+npm install -g git+https://github.com/xiaof631/terminal-wait-notifier.git
+```
+
+或者先 clone 到本地再安装：
+
+```bash
+git clone https://github.com/xiaof631/terminal-wait-notifier.git
+cd terminal-wait-notifier
+npm test
+npm install -g .
+```
+
 全局安装时会自动把 managed hook 写入当前 shell 的配置文件（支持 zsh、bash、fish）。你不需要再手动执行 `twn install-hook`。
 如果本机安装了 Codex，安装脚本还会尝试写入 Codex `Stop` hook，用来在 Codex 每轮任务结束时提醒。
 如果本机存在 Qwen Code、Gemini CLI、Claude Code、Qoder CLI 的用户配置目录，安装脚本也会自动写入对应的任务结束 hook。
@@ -34,6 +49,13 @@ Codex hook 会被 Codex 标记为新 hook。Codex 出于安全要求会在下次
 
 ```bash
 TWN_SKIP_AUTO_HOOK=1 npm install -g terminal-wait-notifier
+```
+
+源码安装时同样可以跳过：
+
+```bash
+TWN_SKIP_AUTO_HOOK=1 npm install -g git+https://github.com/xiaof631/terminal-wait-notifier.git
+TWN_SKIP_AUTO_HOOK=1 npm install -g .
 ```
 
 如果只想跳过 Codex hook：
