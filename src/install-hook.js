@@ -84,7 +84,8 @@ function renderHookCommand(shell, options = {}) {
     options.desktop === false ? '--no-desktop' : '',
     options.webhook === false ? '--no-webhook' : '',
     options.bell === true ? '--bell' : '',
-    renderSoundFlag(options.sound)
+    renderSoundFlag(options.sound),
+    renderAlertFlag(options.alert)
   ].filter(Boolean);
 
   return ['twn', 'hook', shell, ...flags].join(' ');
@@ -95,6 +96,12 @@ function renderSoundFlag(sound) {
   if (typeof sound === 'string' && sound.trim()) {
     return `--sound ${shellQuote(sound)}`;
   }
+  return '';
+}
+
+function renderAlertFlag(alert) {
+  if (alert === true) return '--alert';
+  if (alert === false) return '--no-alert';
   return '';
 }
 
@@ -188,6 +195,7 @@ module.exports = {
   renderManagedHookBlock,
   renderHookCommand,
   renderSoundFlag,
+  renderAlertFlag,
   resolveRcFile,
   normalizeShell,
   upsertManagedBlock,

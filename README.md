@@ -160,6 +160,14 @@ macOS 上声音使用 `/System/Library/Sounds/<name>.aiff` 播放。常见名字
 
 如果有声音但没有弹窗，通常是系统通知权限、专注模式或通知样式问题。到 macOS 系统设置的“通知”里检查 `osascript`、脚本编辑器或当前终端相关通知是否允许显示横幅。
 
+如果你希望 macOS 上一定有更明显的弹窗，可以开启强提示模式。它会额外显示一个自动超时的 alert，适合 Codex/AI CLI 这类任务结束提醒，不建议给每条普通 shell 命令默认开启。
+
+```bash
+twn notify "强提示测试" --alert --sound Glass --no-webhook
+twn codex-hook --alert
+TWN_ALERT=1 twn ai-hook --cli qwen
+```
+
 只使用 webhook：
 
 ```bash
@@ -321,6 +329,8 @@ twn notify "手动提醒测试"
 | `TWN_WEBHOOK=0` | 关闭 webhook |
 | `TWN_BELL=1` | 同时响铃 |
 | `TWN_SOUND` | 播放通知声音，例如 `Glass`、`Ping`；设为 `0` 关闭 |
+| `TWN_ALERT=1` | macOS 上额外显示更明显的 alert 弹窗 |
+| `TWN_ALERT_TIMEOUT_SECONDS` | alert 自动关闭秒数，默认 10 |
 | `TWN_MIN_SECONDS` | 完成提醒最短耗时阈值 |
 | `TWN_PROMPT_DETECTION=0` | 关闭确认等待检测 |
 | `TWN_PROMPT_THROTTLE_SECONDS` | 确认提醒节流时间，默认 60 |

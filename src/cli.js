@@ -159,6 +159,12 @@ function parseRunArgs(args) {
         case '--no-sound':
           options.sound = false;
           break;
+        case '--alert':
+          options.alert = true;
+          break;
+        case '--no-alert':
+          options.alert = false;
+          break;
         case '--shell':
           options.shell = true;
           break;
@@ -217,6 +223,12 @@ function parseNotifyArgs(args) {
         case '--no-sound':
           options.sound = false;
           break;
+        case '--alert':
+          options.alert = true;
+          break;
+        case '--no-alert':
+          options.alert = false;
+          break;
         case '--no-desktop':
           options.desktop = false;
           break;
@@ -261,6 +273,12 @@ function parseHookArgs(args) {
         break;
       case '--no-sound':
         options.sound = false;
+        break;
+      case '--alert':
+        options.alert = true;
+        break;
+      case '--no-alert':
+        options.alert = false;
         break;
       default:
         throw usageError(`Unknown hook option: ${arg}`);
@@ -320,6 +338,14 @@ function parseHookInstallArgs(args, mode = {}) {
         if (mode.uninstall) throw usageError(`${arg} is only supported by install-hook`);
         options.sound = false;
         break;
+      case '--alert':
+        if (mode.uninstall) throw usageError(`${arg} is only supported by install-hook`);
+        options.alert = true;
+        break;
+      case '--no-alert':
+        if (mode.uninstall) throw usageError(`${arg} is only supported by install-hook`);
+        options.alert = false;
+        break;
       default:
         throw usageError(`Unknown ${mode.uninstall ? 'uninstall-hook' : 'install-hook'} option: ${arg}`);
     }
@@ -352,6 +378,12 @@ function parseCodexHookArgs(args) {
         break;
       case '--no-sound':
         options.sound = false;
+        break;
+      case '--alert':
+        options.alert = true;
+        break;
+      case '--no-alert':
+        options.alert = false;
         break;
       case '--no-desktop':
         options.desktop = false;
@@ -422,6 +454,12 @@ function parseAiHookArgs(args) {
         break;
       case '--no-sound':
         options.sound = false;
+        break;
+      case '--alert':
+        options.alert = true;
+        break;
+      case '--no-alert':
+        options.alert = false;
         break;
       case '--no-desktop':
         options.desktop = false;
@@ -608,6 +646,8 @@ Run options:
   --webhook-url <url>             Push notification webhook endpoint
   --sound <name>                  Play a notification sound, e.g. Glass or Ping
   --no-sound                      Disable notification sound
+  --alert                         Show a stronger macOS alert popup
+  --no-alert                      Disable alert popup
   --shell                         Run the command through the user's shell
   --no-prompt                     Disable waiting-confirmation detection
   --no-desktop                    Disable desktop notification
@@ -621,6 +661,8 @@ Hook install options:
   --dry-run                       Print the managed block without writing
   --sound <name>                  Play a notification sound from the hook
   --no-sound                      Disable notification sound from the hook
+  --alert                         Show a stronger macOS alert popup from the hook
+  --no-alert                      Disable alert popup from the hook
   --no-desktop                    Disable desktop notification in the hook
   --no-webhook                    Disable webhook push in the hook
   --bell                          Also ring the terminal bell from the hook
@@ -631,6 +673,8 @@ Codex notification options:
   --webhook-url <url>             Push notification webhook endpoint
   --sound <name>                  Play a notification sound, default Glass
   --no-sound                      Disable notification sound
+  --alert                         Show a stronger macOS alert popup
+  --no-alert                      Disable alert popup
   --no-desktop                    Disable desktop notification
   --no-webhook                    Disable webhook push
   --bell                          Also ring the terminal bell
@@ -646,6 +690,8 @@ AI CLI hook options:
   --cli <name>                    AI CLI name: codex, qwen, gemini, claude, qoder
   --sound <name>                  Play a notification sound, default Glass
   --no-sound                      Disable notification sound
+  --alert                         Show a stronger macOS alert popup
+  --no-alert                      Disable alert popup
   --only-existing                 Only install hooks for CLIs with an existing settings directory
   --no-codex                      Skip Codex when running install-ai-hooks
   --dry-run                       Compute hook changes without writing

@@ -19,6 +19,10 @@ async function sendNotification(event, rawOptions = {}) {
     sendDesktopNotification(normalized);
   }
 
+  if (options.alert) {
+    sendDesktopAlert(normalized, options);
+  }
+
   if (options.webhook && options.webhookUrl) {
     await sendWebhook(normalized, options);
   }
@@ -76,6 +80,27 @@ function sendDesktopNotification(event) {
       windowsToastScript(event.title, event.message)
     ]);
   }
+}
+
+function sendDesktopAlert(event, options = {}) {
+  if (process.platform !== 'darwin') return;
+
+  const timeoutSeconds = Number.isFinite(options.alertTimeoutSeconds)
+    ? options.alertTimeoutSeconds
+    : 10;
+  detachedSpawn('osascript', ['-e', darwinAlertScript(event, timeoutSeconds)]);
+}
+
+function darwinAlertScript(event, timeoutSeconds = 10) {
+  return [
+    'display alert',
+    osaString(event.title),
+    'message',
+    osaString(event.message),
+    'as informational',
+    'giving up after',
+    String(Math.max(1, timeoutSeconds))
+  ].join(' ');
 }
 
 function playNotificationSound(soundName) {
@@ -175,6 +200,8 @@ module.exports = {
   normalizeEvent,
   sendWebhook,
   sendDesktopNotification,
+  sendDesktopAlert,
+  darwinAlertScript,
   playNotificationSound,
   darwinSoundPath
 };

@@ -47,6 +47,14 @@ test('renders hook command flags', () => {
     renderHookCommand('zsh', { sound: false }),
     'twn hook zsh --min-seconds 0 --no-sound'
   );
+  assert.equal(
+    renderHookCommand('zsh', { alert: true }),
+    'twn hook zsh --min-seconds 0 --alert'
+  );
+  assert.equal(
+    renderHookCommand('zsh', { alert: false }),
+    'twn hook zsh --min-seconds 0 --no-alert'
+  );
 });
 
 test('upserts managed block without duplicating it', () => {

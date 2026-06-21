@@ -6,7 +6,11 @@ function buildNotifyOptions(options = {}) {
     webhookHeaders: parseHeaders(process.env.TWN_WEBHOOK_HEADERS),
     webhookTimeoutMs: parsePositiveInt(process.env.TWN_WEBHOOK_TIMEOUT_MS, 5000),
     bell: options.bell !== undefined ? options.bell : envEnabled('TWN_BELL', false),
-    sound: parseSoundOption(pickSoundOption(options), false)
+    sound: parseSoundOption(pickSoundOption(options), false),
+    alert: options.alert !== undefined ? options.alert : envEnabled('TWN_ALERT', false),
+    alertTimeoutSeconds: options.alertTimeoutSeconds !== undefined
+      ? options.alertTimeoutSeconds
+      : parsePositiveInt(process.env.TWN_ALERT_TIMEOUT_SECONDS, 10)
   };
 }
 

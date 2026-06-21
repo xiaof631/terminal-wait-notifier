@@ -4,7 +4,8 @@ function renderShellHook(shell, options = {}) {
     options.desktop === false ? '--no-desktop' : '',
     options.webhook === false ? '--no-webhook' : '',
     options.bell === true ? '--bell' : '',
-    renderSoundFlag(options.sound)
+    renderSoundFlag(options.sound),
+    renderAlertFlag(options.alert)
   ].filter(Boolean).join(' ');
   const runFlags = [`--min-seconds ${minSeconds}`, notifyFlags].filter(Boolean).join(' ');
 
@@ -137,6 +138,12 @@ function renderSoundFlag(sound) {
   if (typeof sound === 'string' && sound.trim()) {
     return `--sound ${shellQuote(sound)}`;
   }
+  return '';
+}
+
+function renderAlertFlag(alert) {
+  if (alert === true) return '--alert';
+  if (alert === false) return '--no-alert';
   return '';
 }
 

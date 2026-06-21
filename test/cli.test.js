@@ -41,3 +41,13 @@ test('parses notification sound options', () => {
   assert.equal(parseCodexHookArgs(['--no-sound']).sound, false);
   assert.equal(parseAiHookArgs(['--cli', 'qwen', '--sound', 'Glass']).sound, 'Glass');
 });
+
+test('parses alert popup options', () => {
+  assert.deepEqual(parseRunArgs(['--alert', '--', 'npm', 'test']), {
+    commandArgs: ['npm', 'test'],
+    options: { alert: true }
+  });
+
+  assert.equal(parseCodexHookArgs(['--no-alert']).alert, false);
+  assert.equal(parseAiHookArgs(['--cli', 'qwen', '--alert']).alert, true);
+});

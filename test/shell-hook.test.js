@@ -9,9 +9,9 @@ test('shell hook defaults to notifying every completed command', () => {
 });
 
 test('zsh hook includes tw shortcut and duplicate guard', () => {
-  const hook = renderShellHook('zsh', { minSeconds: 5, webhook: false, sound: 'Ping' });
+  const hook = renderShellHook('zsh', { minSeconds: 5, webhook: false, sound: 'Ping', alert: true });
   assert.match(hook, /tw\(\) \{/);
-  assert.match(hook, /command twn run --min-seconds 5 --no-webhook --sound Ping -- "\$@"/);
+  assert.match(hook, /command twn run --min-seconds 5 --no-webhook --sound Ping --alert -- "\$@"/);
   assert.match(hook, /tw\\ \*/);
   assert.match(hook, /elapsed >= 5/);
 });
