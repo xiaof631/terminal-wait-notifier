@@ -36,6 +36,15 @@
 - 不做 AI agent 远程控制、聊天桥接或会话管理。
 - 不自动回答确认问题，也不读取隐藏密码；只提醒你回来处理。
 
+## 点击通知激活终端（macOS）
+
+macOS 默认通知点击后没有动作。本工具会优先调用 [`terminal-notifier`](https://github.com/julienXX/terminal-notifier) 的 `-activate` 能力，让你点击通知时直接切回发起提醒的终端窗口（Terminal.app、iTerm2、VSCode、Warp 等）。
+
+- 未安装时自动回退为普通通知，其它功能不受影响。
+- 安装：`brew install terminal-notifier`。
+- 终端 bundle id 一般能自动识别；识别不到时可用 `TWN_TERMINAL_BUNDLE_ID` 手动指定。
+- 想关掉这个行为：`--no-activate` 或 `TWN_ACTIVATE=0`。
+
 ## 是否必须包裹命令？
 
 不完全是。
@@ -459,6 +468,8 @@ twn notify "手动提醒测试"
 | `TWN_SOUND` | 播放通知声音，例如 `Glass`、`Ping`；设为 `0` 关闭 |
 | `TWN_ALERT=1` | macOS 上额外显示更明显的 alert 弹窗 |
 | `TWN_ALERT_TIMEOUT_SECONDS` | alert 自动关闭秒数，默认 10 |
+| `TWN_ACTIVATE=0` | 点击 macOS 通知后不激活终端窗口；默认开启 |
+| `TWN_TERMINAL_BUNDLE_ID` | 指定点击通知要激活的终端 bundle id，自动检测失败时使用 |
 | `TWN_MIN_SECONDS` | 完成提醒最短耗时阈值 |
 | `TWN_PROMPT_DETECTION=0` | 关闭等待输入检测，等价于默认带 `--no-prompt` |
 | `TWN_PROMPT_THROTTLE_SECONDS` | 等待输入提醒节流时间，默认 60，避免同一个卡住命令反复打扰 |

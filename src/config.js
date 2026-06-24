@@ -10,7 +10,9 @@ function buildNotifyOptions(options = {}) {
     alert: options.alert !== undefined ? options.alert : envEnabled('TWN_ALERT', false),
     alertTimeoutSeconds: options.alertTimeoutSeconds !== undefined
       ? options.alertTimeoutSeconds
-      : parsePositiveInt(process.env.TWN_ALERT_TIMEOUT_SECONDS, 10)
+      : parsePositiveInt(process.env.TWN_ALERT_TIMEOUT_SECONDS, 10),
+    activate: options.activate !== undefined ? options.activate : envEnabled('TWN_ACTIVATE', true),
+    terminalBundleId: options.terminalBundleId || process.env.TWN_TERMINAL_BUNDLE_ID
   };
 }
 

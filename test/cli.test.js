@@ -8,7 +8,8 @@ const {
   parseCodexHookInstallArgs,
   parseCodexHookUninstallArgs,
   parseStatusArgs,
-  parseRunArgs
+  parseRunArgs,
+  parseNotifyArgs
 } = require('../src/cli');
 
 test('parses Codex hook install dry-run option', () => {
@@ -81,6 +82,17 @@ test('parses alert popup options', () => {
 
   assert.equal(parseCodexHookArgs(['--no-alert']).alert, false);
   assert.equal(parseAiHookArgs(['--cli', 'qwen', '--alert']).alert, true);
+});
+
+test('parses click-to-activate options for run and notify', () => {
+  assert.deepEqual(parseRunArgs(['--activate', '--', 'npm', 'test']), {
+    commandArgs: ['npm', 'test'],
+    options: { activate: true }
+  });
+  assert.equal(parseRunArgs(['--no-activate', '--', 'npm', 'test']).options.activate, false);
+
+  assert.equal(parseNotifyArgs(['--activate', 'hello']).options.activate, true);
+  assert.equal(parseNotifyArgs(['--no-activate', 'hello']).options.activate, false);
 });
 
 test('parses diagnostics options', () => {

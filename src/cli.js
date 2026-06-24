@@ -210,6 +210,12 @@ function parseRunArgs(args) {
         case '--no-webhook':
           options.webhook = false;
           break;
+        case '--activate':
+          options.activate = true;
+          break;
+        case '--no-activate':
+          options.activate = false;
+          break;
         case '--bell':
           options.bell = true;
           break;
@@ -267,6 +273,12 @@ function parseNotifyArgs(args) {
           break;
         case '--no-webhook':
           options.webhook = false;
+          break;
+        case '--activate':
+          options.activate = true;
+          break;
+        case '--no-activate':
+          options.activate = false;
           break;
         case '--bell':
           options.bell = true;
@@ -843,6 +855,8 @@ Run options:
   --no-prompt                     Disable waiting-input detection
   --no-desktop                    Disable desktop notification
   --no-webhook                    Disable webhook push
+  --activate                      Bring the terminal app to front on click (needs terminal-notifier)
+  --no-activate                   Disable click-to-activate, use the plain notification
   --bell                          Also ring the terminal bell
 
 Hook install options:

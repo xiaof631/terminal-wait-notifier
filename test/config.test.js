@@ -16,3 +16,14 @@ test('builds alert notification options', () => {
   assert.equal(buildNotifyOptions({ alert: false }).alert, false);
   assert.equal(buildNotifyOptions({ alert: true, alertTimeoutSeconds: 4 }).alertTimeoutSeconds, 4);
 });
+
+test('activates the terminal by default and respects override flags', () => {
+  assert.equal(buildNotifyOptions({}).activate, true);
+  assert.equal(buildNotifyOptions({ activate: false }).activate, false);
+  assert.equal(buildNotifyOptions({ activate: true }).activate, true);
+});
+
+test('passes through the terminal bundle id override', () => {
+  assert.equal(buildNotifyOptions({ terminalBundleId: 'com.example.Term' }).terminalBundleId, 'com.example.Term');
+  assert.equal(buildNotifyOptions({}).terminalBundleId, undefined);
+});
